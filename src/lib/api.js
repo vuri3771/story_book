@@ -5,24 +5,31 @@ import { S, save } from './store';
 import { NAI_BASE } from './constants';
 import { modelOf } from './helpers';
 import { openSettings } from '../sheets';
+import { authHeader, refreshWallet } from './remote';
 
 const PROXY = import.meta.env.VITE_CLAUDE_PROXY_URL || '';
 
-export async function callClaude({model, system, messages, max_tokens, effort, onText, signal}){
+// 서버 키 모드에서는 끝날 때마다 서버 지갑 잔액을 다시 받아온다
+export async function callClaude(args){
+  try { return await callClaudeRaw(args); }
+  finally { if (PROXY && modelOf(args.model).provider !== 'nai') refreshWallet(); }
+}
+
+async function callClaudeRaw({model, system, messages, max_tokens, effort, onText, signal}){
   const md = modelOf(model);
   if (md.provider === 'nai') return callNovelAI({system, messages, max_tokens, onText, signal});
   if (!PROXY && !S.settings.apiKey){ openSettings(); throw new Error('먼저 API 키를 넣어주세요.'); }
   const body = {model, max_tokens, system, messages, stream: !!onText};
   if (effort) body.output_config = {effort};
   const headers = PROXY
-    ? {'content-type':'application/json'}
+    ? {'content-type':'application/json', ...authHeader()}
     : {'content-type':'application/json', 'x-api-key':S.settings.apiKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'};
   const useFb = md.fb && !S.settings.noFallback;
   if (useFb){ body.fallbacks = 'default'; headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; }
   let res = await safeFetch(PROXY || 'https://api.anthropic.com/v1/messages', {method:'POST', headers, body:JSON.stringify(body), signal});
   if (res.status === 400 && useFb){
     const t = await res.text();
-    if (/fallback|beta/i.test(t)){ S.settings.noFallback = true; save(); return callClaude({model, system, messages, max_tokens, effort, onText, signal}); }
+    if (/fallback|beta/i.test(t)){ S.settings.noFallback = true; save(); return callClaudeRaw({model, system, messages, max_tokens, effort, onText, signal}); }
     throw new Error(apiError(400, t));
   }
   if (!res.ok) throw new Error(apiError(res.status, await res.text()));
@@ -109,7 +116,8 @@ async function safeFetch(url, opts){
 }
 function apiError(status, t){
   let msg = t; try { msg = JSON.parse(t).error?.message || t; } catch(e){}
-  if (status === 401) return 'API 키가 맞지 않아요. 설정에서 키를 확인해주세요.';
+  if (status === 402) return '크레딧이 부족해요. 충전 후 이용해주세요.';
+  if (status === 401) return PROXY ? '서버 인증에 실패했어요. 새로고침 후 다시 시도해주세요.' : 'API 키가 맞지 않아요. 설정에서 키를 확인해주세요.';
   if (status === 429) return '요청이 너무 많아요. 잠시 후 다시 보내주세요.';
   if (status === 529 || status >= 500) return '서버가 바빠요. 잠시 후 다시 시도해주세요.';
   if (/credit|balance/i.test(msg)) return '크레딧이 부족해요. console.anthropic.com에서 충전해주세요.';

@@ -1,0 +1,12 @@
+﻿{
+  "name": "story-aws",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "3.1100.0",
+    "@aws-sdk/lib-dynamodb": "3.1100.0"
+  }
+}

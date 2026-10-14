@@ -14,8 +14,11 @@ const subscribe = l => { listeners.add(l); return () => listeners.delete(l); };
 export function notify(){ ver++; listeners.forEach(l => l()); }
 export function useStore(){ useSyncExternalStore(subscribe, () => ver); return S; }
 
+// 저장 뒤에 할 일(서버 동기화)을 main 에서 끼워 넣는다
+let afterSave = null;
+export function onSaved(fn){ afterSave = fn; }
 let saveTimer;
-export function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(async () => { if (!(await saveNow(S))) toast('저장 공간이 부족해요. 이미지나 오래된 대화를 지워주세요.'); }, 250); }
+export function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(async () => { if (!(await saveNow(S))) toast('저장 공간이 부족해요. 이미지나 오래된 대화를 지워주세요.'); afterSave?.(); }, 250); }
 export function commit(){ notify(); save(); }
 
 // 화면 상태 : 이동 스택, 시트, 사이드 메뉴, 토스트

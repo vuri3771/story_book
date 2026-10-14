@@ -5,6 +5,7 @@ import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, PAY_METHODS, uid } from './
 import { modelOf, won, storyOf, exportAll, importFile } from './lib/helpers';
 import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
+import { remoteOn, token, switchAccount, testCharge } from './lib/remote';
 import { Icon } from './icons';
 
 export function Sheet({children, ok, danger, onOk}){
@@ -65,12 +66,33 @@ export function SettingsForm({inSheet}){
         <div className="note" style={{padding:'8px 0 0'}}>지금까지 쓴 금액 ≈ {won(S.usage.krw || 0)}원 (예상치)</div>
         <label>백업</label>
         <div className="seg"><button onClick={exportAll}>내보내기</button><button onClick={importFile}>불러오기</button></div>
+        {remoteOn && <AccountCode/>}
       </div>
       {inSheet
         ? <div className="sb"><button className="btn" onClick={closeSheet}>취소</button><button className="btn dark" onClick={saveIt}>저장</button></div>
         : <div style={{padding:'20px 20px 28px'}}><button className="btn dark" style={{width:'100%'}} onClick={saveIt}>저장</button></div>}
     </>
   );
+}
+
+// ----- 다른 기기에서 이어하기 : 기기 토큰이 곧 계정이라 코드를 옮기면 같은 내용과 크레딧을 쓴다 -----
+function AccountCode(){
+  const [show, setShow] = useState(false);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const mine = token();
+  const copy = async () => { try { await navigator.clipboard.writeText(mine); toast('연결 코드를 복사했어요.'); } catch(e){ setShow(true); } };
+  const apply = () => ask('이 기기의 내용이 그 코드의 내용으로 바뀌어요. 계속할까요?', '바꾸기', () => {
+    setBusy(true);
+    switchAccount(code).then(() => { toast('불러왔어요.'); setCode(''); }).catch(e => toast(e.message)).finally(() => setBusy(false));
+  });
+  return <>
+    <label>다른 기기에서 이어하기<small>코드는 비밀번호처럼 남에게 보여주지 마세요</small></label>
+    <div className="seg"><button onClick={copy}>내 연결 코드 복사</button><button onClick={() => setShow(!show)}>{show ? '코드 숨기기' : '코드 보기'}</button></div>
+    {show && <input readOnly value={mine} onFocus={e => e.target.select()}/>}
+    <input value={code} onChange={e => setCode(e.target.value)} placeholder="다른 기기의 연결 코드 붙여넣기" autoComplete="off"/>
+    <button className="linkbtn" disabled={!code.trim() || busy} onClick={apply}>{busy ? '불러오는 중…' : '이 코드로 불러오기'}</button>
+  </>;
 }
 
 // ----- 등장인물 프로필 -----
@@ -98,6 +120,11 @@ export function PayConfirmSheet({pkg, onDone}){
   return (
     <Sheet ok="테스트 충전하기" onOk={() => {
       const total = pkg.price + pkg.bonus;
+      // 서버 연결 시 잔액은 서버가 정한다
+      if (remoteOn){
+        testCharge(pkg.id, method).then(() => { toast(`${total.toLocaleString('ko-KR')} 크레딧을 충전했어요.`); onDone?.(); }).catch(e => toast('충전 실패 : ' + e.message));
+        return;
+      }
       S.wallet.balance = (S.wallet.balance || 0) + total;
       S.wallet.history.unshift({id:uid(), price:pkg.price, credit:total, method, at:Date.now(), test:true});
       commit(); toast(`${total.toLocaleString('ko-KR')} 크레딧을 충전했어요.`); onDone?.();
