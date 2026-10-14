@@ -1,0 +1,42 @@
+import { useState } from 'react';
+import { S, back, commit, toast } from '../lib/store';
+import { uid } from '../lib/constants';
+import { chatById, storyOf } from '../lib/helpers';
+import { ask } from '../sheets';
+import { Icon } from '../icons';
+
+export default function ShortcutEditor({chatId, owner, id}){
+  const st = storyOf(chatById(chatId));
+  const listOf = o => o === 'st' ? (st.shortcuts = st.shortcuts || []) : S.shortcuts;
+  const orig = listOf(owner).find(s => s.id === id);
+  const [own, setOwn] = useState(owner);
+  const [name, setName] = useState(orig?.name || '');
+  const [desc, setDesc] = useState(orig?.desc || '');
+  const [body, setBody] = useState(orig?.body || '');
+  const ok = !!(name && desc && body.trim());
+
+  const saveIt = () => {
+    if (!ok) return;
+    const d = {name, desc, body};
+    if (orig) Object.assign(orig, d); else listOf(own).push({id:uid(), ...d});
+    commit(); toast('저장했어요.'); back();
+  };
+
+  return <>
+    <div className="hdr"><button className="icon-btn" aria-label="뒤로" onClick={back}><Icon n="back"/></button><div className="t center">{orig ? '단축어 수정' : '단축어 추가'}</div><span style={{width:36}}/></div>
+    <div className="scroll"><div className="form" style={{padding:'0 16px 24px'}}>
+      <label>단축어 이름<span className="req">*</span><small>{name.length}/10</small></label>
+      <div style={{position:'relative'}}><span style={{position:'absolute', left:14, top:12, color:'var(--muted)'}}>/</span><input maxLength={10} value={name} onChange={e => setName(e.target.value.replace(/^\/+/, '').replace(/\s/g, ''))} style={{paddingLeft:26}}/></div>
+      <label>설명<span className="req">*</span><small>{desc.length}/30</small></label>
+      <input maxLength={30} value={desc} onChange={e => setDesc(e.target.value)} placeholder="예: 캐릭터의 일기를 몰래 살펴보세요."/>
+      <label>프롬프트 본문<span className="req">*</span><small>{'{char} {user}'} 사용 가능</small></label>
+      <textarea rows="14" value={body} onChange={e => setBody(e.target.value)} placeholder="이 단축어를 쓰면 모델에게 전달할 지시"/>
+      {!orig && <><label>어디에 저장할까요</label><div className="seg">
+        <button className={own === 'me' ? 'on' : ''} onClick={() => setOwn('me')}>내 단축어 (모든 스토리)</button>
+        <button className={own === 'st' ? 'on' : ''} onClick={() => setOwn('st')}>이 스토리에만</button>
+      </div></>}
+      {orig && <button className="linkbtn danger" style={{marginTop:18}} onClick={() => ask(`/${orig.name} 단축어를 삭제할까요?`, '삭제', () => { const arr = listOf(owner); arr.splice(arr.indexOf(orig), 1); commit(); back(); })}>단축어 삭제</button>}
+    </div></div>
+    <div className="page-foot"><button className="btn dark" style={{width:'100%'}} disabled={!ok} onClick={saveIt}>저장</button></div>
+  </>;
+}

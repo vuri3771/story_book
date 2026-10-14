@@ -1,0 +1,128 @@
+/* ===== 앱 셸 : 모바일은 아래 탭바, 넓은 화면은 왼쪽 사이드바 ===== */
+.shell{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+.shell > #app{order:1}
+.tabbar{order:2;flex-shrink:0;display:flex;border-top:1px solid var(--line);background:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;font-size:11px;color:var(--muted);transition:color .15s}
+.tabbar button svg{width:24px;height:24px}
+.tabbar button.on{color:var(--text);font-weight:700}
+.tabbar .brand{display:none}
+.tabbar.deep{display:none}
+.page{width:100%;max-width:1080px;margin:0 auto}
+.edit{max-width:760px;margin:0 auto;width:100%}
+#log,.dock{width:100%;max-width:780px;margin-left:auto;margin-right:auto}
+
+@media (max-width:899px){
+  input,textarea,select,.composer textarea{font-size:16px}
+}
+@media (min-width:900px){
+  .shell{flex-direction:row}
+  .tabbar,.tabbar.deep{order:0;display:flex;flex-direction:column;width:228px;border-top:0;border-right:1px solid var(--line);padding:18px 12px;gap:2px}
+  .tabbar .brand{display:block;font-size:20px;font-weight:700;padding:4px 14px 18px}
+  .tabbar button{flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 14px;border-radius:12px;font-size:15px}
+  .tabbar button:hover{background:var(--surface)}
+  .tabbar button.on{background:var(--surface)}
+  .tabbar button svg{width:22px;height:22px}
+  .hero img{aspect-ratio:21/9}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+}
+
+/* ===== 시트, 사이드 메뉴 애니메이션 ===== */
+.sheet-bg{animation:fadeIn .22s ease both}
+.sheet{animation:sheetUp .32s cubic-bezier(.32,.72,0,1) both}
+.sheet-bg.closing{animation:fadeOut .2s ease both;pointer-events:none}
+.sheet-bg.closing .sheet{animation:sheetDown .2s ease-in both}
+@media (min-width:900px){
+  .sheet-bg{align-items:center}
+  .sheet{border-radius:22px;max-height:84vh;padding-bottom:18px;animation-name:popIn;animation-duration:.24s}
+  .sheet-bg.closing .sheet{animation-name:popOut}
+  .sheet .grab{visibility:hidden;height:2px;margin:0}
+}
+.drawer-bg{position:fixed;inset:0;background:rgba(10,10,15,.45);z-index:40;display:flex;justify-content:flex-end;animation:fadeIn .22s ease both}
+.drawer{width:min(400px,88vw);height:100%;background:var(--bg);display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.18);animation:drawerIn .32s cubic-bezier(.32,.72,0,1) both;padding-top:env(safe-area-inset-top,0px)}
+.drawer-bg.closing{animation:fadeOut .2s ease both;pointer-events:none}
+.drawer-bg.closing .drawer{animation:drawerOut .2s ease-in both}
+#toast{animation:toastIn .25s cubic-bezier(.32,.72,0,1) both}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes sheetUp{from{transform:translateY(100%)}}
+@keyframes sheetDown{to{transform:translateY(100%)}}
+@keyframes popIn{from{opacity:0;transform:translateY(14px) scale(.97)}}
+@keyframes popOut{to{opacity:0;transform:scale(.97)}}
+@keyframes drawerIn{from{transform:translateX(100%)}}
+@keyframes drawerOut{to{transform:translateX(100%)}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,-10px)}}
+
+/* ===== 답변 생성 게이지 ===== */
+.gauge{height:6px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.gauge i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),#ff9a5b);transition:width .35s ease}
+.hdr .gauge{position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:0;background:transparent;z-index:2}
+.gen-card{background:var(--surface);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.gen-card .gl{display:flex;justify-content:space-between;font-size:13.5px;color:var(--narr);font-variant-numeric:tabular-nums}
+
+/* ===== 대화 속 이미지, 아바타 ===== */
+.m .dlg .ava{width:24px;height:24px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:7px}
+.scene{animation:fadeIn .4s ease both}
+.scene figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* ===== 등장인물 ===== */
+.cast{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:14px 8px;padding:6px 16px 10px}
+.cast button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;min-width:0}
+.cast .ph{width:58px;height:58px;border-radius:50%;object-fit:cover;display:grid;place-items:center;font-weight:700;color:#fff;font-size:20px}
+.cast span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cast small{color:var(--muted);font-size:11px;margin-top:-4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== 홈 ===== */
+.hero-home{margin:16px;padding:22px 20px;border-radius:20px;background:linear-gradient(135deg,var(--accent),#ff8f5e);color:#fff}
+.hero-home h2{margin:0 0 6px;font-size:21px;text-wrap:balance}
+.hero-home p{margin:0 0 16px;opacity:.92;font-size:14px;line-height:1.6}
+.hero-home .hb{display:flex;gap:8px;flex-wrap:wrap}
+.hero-home button{background:#fff;color:#1c1c21;border-radius:12px;padding:10px 14px;font-weight:700;font-size:14px}
+.hero-home button.ghost{background:rgba(255,255,255,.2);color:#fff}
+.sec-h{display:flex;justify-content:space-between;align-items:center;padding:20px 16px 8px}
+.sec-h b{font-size:17px}
+.sec-h button{color:var(--muted);font-size:13.5px}
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 8px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll > *{scroll-snap-align:start;flex-shrink:0}
+.ccard{width:250px;border-radius:16px;overflow:hidden;background:var(--surface);text-align:left;display:flex;flex-direction:column}
+.ccard img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--surface2)}
+.ccard .cb{padding:10px 12px 12px}
+.ccard b{display:block;font-size:15px}
+.ccard span{font-size:12.5px;color:var(--narr);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ccard small{display:block;color:var(--muted);font-size:11.5px;margin-top:6px}
+.hscroll .scard{width:136px}
+.empty-box{margin:8px 16px;padding:22px 16px;border-radius:14px;border:1.5px dashed var(--line);color:var(--muted);text-align:center;font-size:14px}
+.wallet{margin:0 16px;padding:14px 16px;border-radius:16px;border:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.wallet .wv{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.wallet small{color:var(--muted);display:block;font-size:12.5px}
+.wallet button{margin-left:auto;background:var(--text);color:var(--bg);border-radius:10px;padding:9px 14px;font-weight:700;font-size:13.5px}
+.pill{cursor:pointer}
+
+/* ===== 이어서 하기 목록 ===== */
+.crow{display:flex;align-items:center;padding-right:8px}
+.crow .row{flex:1;min-width:0}
+.crow .icon-btn{color:var(--muted)}
+.crow .icon-btn:hover{color:var(--accent)}
+
+/* ===== 충전 ===== */
+.bal{margin:16px;padding:22px 20px;border-radius:20px;background:var(--text);color:var(--bg)}
+.bal small{opacity:.7;font-size:13px}
+.bal .v{font-size:32px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.bal .u{opacity:.7;font-size:12.5px;margin-top:8px}
+.pkgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:4px 16px}
+.pkg{border:1.5px solid var(--line);border-radius:16px;padding:16px 14px 14px;text-align:left;display:flex;flex-direction:column;gap:4px;position:relative;transition:border-color .15s,transform .15s}
+.pkg:active{transform:scale(.98)}
+.pkg.on{border-color:var(--accent)}
+.pkg b{font-size:18px;font-variant-numeric:tabular-nums}
+.pkg .pr{color:var(--narr);font-size:13.5px;font-variant-numeric:tabular-nums}
+.pkg .bn{position:absolute;top:10px;right:10px;background:#ffe9e5;color:var(--accent);font-size:11.5px;border-radius:6px;padding:2px 6px;font-weight:700}
+.pkg .best{color:var(--accent);font-size:12px;font-weight:700}
+.notice{margin:14px 16px 0;padding:12px 14px;border-radius:12px;background:var(--surface);color:var(--narr);font-size:13px;line-height:1.6}
+.hist-row{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);font-size:14px}
+.hist-row small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.hist-row b{font-variant-numeric:tabular-nums;color:var(--blue)}
+
+@media (prefers-reduced-motion: reduce){
+  .sheet-bg,.sheet,.drawer-bg,.drawer,#toast,.scene{animation:none!important}
+  .gauge i,.pkg,.tabbar button{transition:none!important}
+}
