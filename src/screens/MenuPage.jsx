@@ -5,6 +5,7 @@ import { chatById, storyOf, personaOf, modelOf, coverOf, won } from '../lib/help
 import { run } from '../lib/engine';
 import { Drawer, ask, GuideSheet, ProfileSheet, NotesSheet, StyleSheet, MemorySheet, LengthSheet, ImageSheet, LookSheet, requestShortcutPop } from '../sheets';
 import { Icon } from '../icons';
+import { Ava } from '../render';
 
 const MI = ({icon, label, right, onClick}) => <button className="mi" onClick={onClick}><Icon n={icon}/><span className="l">{label}</span>{right && <small>{right}</small>}<span className="chev" style={{width:20}}><Icon n="chev"/></span></button>;
 
@@ -19,7 +20,7 @@ export default function ChatMenu({id}){
     <Drawer>
       <div className="hdr" style={{border:0}}><button className="icon-btn" aria-label="닫기" onClick={closeDrawer}><Icon n="back"/></button><span style={{flex:1}}/><span className="pill" onClick={() => { closeDrawer(); tab('charge'); }}>≈ {won(c.cost || 0)}원</span></div>
       <div className="scroll">
-        <div className="prof"><img src={st.characters.find(x => x.image)?.image || coverOf(st)} alt=""/><div><div className="nm"><b>{st.title}</b></div><div className="nm" style={{fontSize:16, marginTop:4}}>{p?.name || '나'} · {modelOf(c.model).name}</div></div></div>
+        <div className="prof">{st.characters.find(x => x.image) ? <Ava ch={st.characters.find(x => x.image)} className="pimg"/> : <img src={coverOf(st)} alt=""/>}<div><div className="nm"><b>{st.title}</b></div><div className="nm" style={{fontSize:16, marginTop:4}}>{p?.name || '나'} · {modelOf(c.model).name}</div></div></div>
         <button className="mh" onClick={() => leaveTo('editor', {id:st.id})}>이미지 보관함({imgs.length}/50)<span style={{width:22, color:'var(--muted)'}}><Icon n="chev"/></span></button>
         <div className="vault">{imgs.length ? imgs.map((im, i) => <img key={i} src={im.data} alt={im.tag} onClick={() => openSheet(<ImageSheet src={im.data} alt={im.tag}/>)}/>) : <div className="empty">스토리 편집에서 이미지를 추가하세요</div>}</div>
         <div className="ml">채팅방 설정</div>

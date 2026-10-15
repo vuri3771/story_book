@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
-import { useStore, ui, go, back, goHome, commit, openSheet, openDrawer, toast } from '../lib/store';
-import { EXPECTED_CHARS } from '../lib/constants';
+import { useStore, ui, go, back, goHome, commit, openSheet, closeSheet, openDrawer, toast } from '../lib/store';
+import { EXPECTED_CHARS, uid } from '../lib/constants';
 import { chatById, storyOf, modelOf, fill, won } from '../lib/helpers';
 import { allShortcuts } from '../lib/prompt';
 import { run, send, regen, suggest, isAdultChat } from '../lib/engine';
 import { renderAI, renderUser, Inline, pickScene, Badge19 } from '../render';
-import { ask, ModelSheet, EditMsgSheet } from '../sheets';
+import { ask, Sheet, ModelSheet, EditMsgSheet } from '../sheets';
 import ChatMenu from './MenuPage';
 import { Icon } from '../icons';
 
@@ -16,8 +16,27 @@ function progressOf(c){
   return Math.min(97, 14 + 83 * Math.min(1, run.text.length / expect));
 }
 
+// 복사할 땐 화면에 안 보이는 수위 표시만 떼고 줄바꿈은 살린다
+const copyText = (m, c) => fill(m.text, c).replace(/\[\[[^\]]*\]\]/g, '').trim();
+
+// 길게 누르면 뜨는 메뉴
+function MsgMenu({at, items, onClose}){
+  const x = Math.min(at.x, innerWidth - 236), y = Math.min(at.y, innerHeight - items.length * 52 - 24);
+  return <div className="mmenu-bg" onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }}>
+    <div className="mmenu" role="menu" style={{left:Math.max(12, x), top:Math.max(12, y)}} onClick={e => e.stopPropagation()}>
+      {items.map(([label, fn]) => <button key={label} role="menuitem" onClick={() => { onClose(); fn(); }}>{label}</button>)}
+    </div>
+  </div>;
+}
+
+function SelectCopySheet({text}){
+  return <Sheet><h3>선택 복사</h3><div className="note">복사할 부분을 길게 눌러 고르세요.</div>
+    <div className="form"><textarea readOnly rows="14" value={text}/></div>
+    <div className="sb"><button className="btn dark" onClick={closeSheet}>닫기</button></div></Sheet>;
+}
+
 export default function ChatPage({id}){
-  useStore();
+  const S = useStore();
   const c = chatById(id);
   const [text, setText] = useState('');
   const [pop, setPop] = useState(() => { const p = ui.pendingPop; ui.pendingPop = null; return p; });
@@ -26,15 +45,30 @@ export default function ChatPage({id}){
   const [openActs, setOpenActs] = useState(() => new Set());
   const popRef = useRef(pop); popRef.current = pop;
   const inpRef = useRef(null), scRef = useRef(null), lenRef = useRef(-1);
+  const spRef = useRef(null), pinRef = useRef(-1), busyRef = useRef(false);
+  const [far, setFar] = useState(false);
+  const [menu, setMenu] = useState(null);
+  const press = useRef({t:0, x:0, y:0, fired:0});
 
   // 입력창 높이 자동 조절
   useLayoutEffect(() => { const t = inpRef.current; if (!t) return; t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; }, [text]);
 
-  // 새 메시지가 붙으면 맨 아래로, 스트리밍 중엔 바닥 근처에 있을 때만 따라간다
+  // 답변이 시작되면 내 메시지를 화면 위쪽에 한 번 맞추고, 글자가 늘어나는 동안에는 스크롤을 움직이지 않는다
+  // 아래 빈칸(spacer)은 답변이 짧아도 내 메시지를 위로 올릴 수 있게 남은 높이만큼만 채운다
   useLayoutEffect(() => {
     const sc = scRef.current; if (!sc || !c) return;
-    if (lenRef.current !== c.messages.length){ lenRef.current = c.messages.length; sc.scrollTop = sc.scrollHeight; }
-    else if (run.busy && sc.scrollHeight - sc.scrollTop - sc.clientHeight < 200) sc.scrollTop = sc.scrollHeight;
+    const nowBusy = run.busy && run.chatId === c.id;
+    let align = false;
+    if (nowBusy && !busyRef.current){ pinRef.current = c.messages.map(m => m.role).lastIndexOf('user'); align = true; }
+    busyRef.current = nowBusy;
+    const sp = spRef.current, u = pinRef.current >= 0 ? sc.querySelector(`[data-i="${pinRef.current}"]`) : null;
+    if (sp) sp.style.height = u ? Math.max(0, sc.clientHeight - (sp.getBoundingClientRect().top - u.getBoundingClientRect().top) - 24) + 'px' : '0px';
+    if (lenRef.current !== c.messages.length){
+      if (lenRef.current !== -1 && u) align = true;
+      else sc.scrollTop = sc.scrollHeight;
+      lenRef.current = c.messages.length;
+    }
+    if (align && u) sc.scrollTop += u.getBoundingClientRect().top - sc.getBoundingClientRect().top - 12;
   });
 
   useEffect(() => { if (!c) goHome(); }, [c]);
@@ -96,14 +130,38 @@ export default function ChatPage({id}){
     } else if (!streaming){
       acts = <div className="acts" hidden={!openActs.has(i)}><button onClick={edit}>수정</button>{m.role === 'user' && <button onClick={delFrom}>삭제</button>}</div>;
     }
-    const toggle = e => { if (e.target.closest('button')) return; const n = new Set(openActs); n.has(i) ? n.delete(i) : n.add(i); setOpenActs(n); };
+    const branch = () => {
+      const nc = JSON.parse(JSON.stringify(c));
+      Object.assign(nc, {id:uid(), messages:nc.messages.slice(0, i + 1), cost:0, updated:Date.now(), branchOf:c.id});
+      delete nc.lastUsage;
+      if ((nc.summarizedUpTo || 0) > nc.messages.length){ nc.memory = ''; nc.summarizedUpTo = 0; }
+      S.chats.push(nc); commit(); go('chat', {id:nc.id}); toast('여기서 갈라진 새 대화를 만들었어요.');
+    };
+    const copy = async () => { try { await navigator.clipboard.writeText(copyText(m, c)); toast('복사했어요.'); } catch(e){ openSheet(<SelectCopySheet text={copyText(m, c)}/>); } };
+    const openMenu = (x, y) => {
+      if (streaming) return;
+      press.current.fired = Date.now();
+      navigator.vibrate?.(10);
+      setMenu({x, y, items:[['수정', edit], ...(i > 0 ? [['삭제', delFrom]] : []), ['분기', branch], ['복사', copy], ['선택 복사', () => openSheet(<SelectCopySheet text={copyText(m, c)}/>)]]});
+    };
+    // 손가락으로 꾹 누르면 메뉴, 마우스는 오른쪽 클릭
+    const down = e => {
+      if (e.pointerType === 'mouse' || busy) return;
+      const p = press.current; clearTimeout(p.t);
+      p.x = e.clientX; p.y = e.clientY;
+      p.t = setTimeout(() => openMenu(p.x, p.y), 480);
+    };
+    const move = e => { const p = press.current; if (Math.abs(e.clientX - p.x) > 8 || Math.abs(e.clientY - p.y) > 8) clearTimeout(p.t); };
+    const up = () => clearTimeout(press.current.t);
+    const ctx = e => { e.preventDefault(); if (Date.now() - press.current.fired > 800) openMenu(e.clientX, e.clientY); };
+    const toggle = e => { if (Date.now() - press.current.fired < 800) return; if (e.target.closest('button')) return; const n = new Set(openActs); n.has(i) ? n.delete(i) : n.add(i); setOpenActs(n); };
     // 19금으로 넘어가는 첫 답변에는 경계 표시, 이어지는 19금 답변에는 작은 뱃지
     let mark = null;
     if (m.adult){
       const prevAdult = c.messages.slice(0, i).reverse().find(x => x.role === 'assistant')?.adult;
       mark = prevAdult ? <div className="adult-mark"><Badge19/></div> : <div className="adult-mark start"><Badge19/><span>여기부터 19금 장면</span></div>;
     }
-    return <div key={i} className={'m ' + m.role} onClick={toggle}>{mark}{body}{acts}</div>;
+    return <div key={i} data-i={i} className={'m ' + m.role} onClick={toggle} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={ctx}>{mark}{body}{acts}</div>;
   });
 
   const scList = pop === 'sc' ? allShortcuts(c).filter(s => (ui.scTab === 'all' || s.owner === ui.scTab) && (!scQuery || s.name.includes(scQuery))) : [];
@@ -116,8 +174,10 @@ export default function ChatPage({id}){
       <button className="icon-btn" aria-label="메뉴" onClick={() => openDrawer(<ChatMenu id={c.id}/>)}><Icon n="menu"/></button>
       {busy && <div className="gauge" role="progressbar" aria-label="답변 생성 중" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i style={{width: pct + '%'}}/></div>}
     </div>
-    <div className="scroll" ref={scRef}><div id="log">{log}</div></div>
+    <div className="scroll" ref={scRef} onScroll={e => { const sc = e.currentTarget; setFar(sc.scrollHeight - sc.scrollTop - sc.clientHeight - (spRef.current?.offsetHeight || 0) > 300); }}><div id="log">{log}<div ref={spRef} aria-hidden="true"/></div></div>
+    {menu && <MsgMenu at={menu} items={menu.items} onClose={() => setMenu(null)}/>}
     <div className="dock">
+      {far && <button className="jump" aria-label="맨 아래로" onClick={() => { const sc = scRef.current; sc.scrollTo({top:sc.scrollHeight - (spRef.current?.offsetHeight || 0) - sc.clientHeight + 40, behavior:'smooth'}); }}><Icon n="chev"/></button>}
       {pop === 'sug' && <div className="pop">
         {!sug ? <div className="sug-load">추천 답변을 만드는 중…</div> : <div className="sug-wrap">{sug.map((o, i) => <div key={i} className="sug">
           <button className="pen" aria-label="고쳐서 보내기" onClick={() => { closePop(); setText(o); inpRef.current?.focus(); }}><Icon n="pen"/></button>

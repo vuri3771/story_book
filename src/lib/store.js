@@ -24,10 +24,43 @@ export function commit(){ notify(); save(); }
 // 화면 상태 : 이동 스택, 시트, 사이드 메뉴, 토스트
 // 이동 스택 맨 아래는 항상 탭 화면(home, stories, chats, charge, settings) 하나
 export const ui = { nav:[{name:'home'}], sheet:null, sheetSeq:0, sheetClosing:false, drawer:null, drawerSeq:0, drawerClosing:false, toast:'', pendingPop:null, scTab:'all' };
-export function go(name, props = {}){ ui.nav.push({name, props}); notify(); }
-export function back(){ ui.nav.pop(); if (!ui.nav.length) ui.nav.push({name:'home'}); notify(); }
-export function replace(name, props = {}){ ui.nav[ui.nav.length-1] = {name, props}; notify(); }
-export function tab(name){ ui.nav = [{name}]; notify(); }
+// 이동할 때마다 브라우저 기록에 이동 스택을 통째로 남겨서, 휴대폰 뒤로가기와 앞으로가기 제스처가 앱 안 화면 이동이 된다
+const snap = () => JSON.parse(JSON.stringify(ui.nav));
+const hasHist = typeof history !== 'undefined';
+function record(push){ if (!hasHist) return; try { history[push ? 'pushState' : 'replaceState']({nav:snap()}, ''); } catch(e){} }
+export function go(name, props = {}){ ui.nav.push({name, props}); record(true); notify(); }
+export function back(){
+  // 앱이 쌓은 기록이 있으면 브라우저 뒤로가기로 처리해서 앞으로가기도 남게 한다
+  if (ui.nav.length > 1 && hasHist && history.state?.nav?.length === ui.nav.length) return history.back();
+  ui.nav.pop(); if (!ui.nav.length) ui.nav.push({name:'home'}); record(false); notify();
+}
+export function forward(){ if (hasHist) history.forward(); }
+export function replace(name, props = {}){ ui.nav[ui.nav.length-1] = {name, props}; record(false); notify(); }
+export function tab(name){ ui.nav = [{name}]; record(true); notify(); }
+
+// 지워진 스토리나 대화를 가리키는 기록으로 돌아가면 그 화면부터 버린다
+const alive = e => {
+  const id = e.props?.id;
+  if (e.name === 'chat') return S.chats.some(c => c.id === id);
+  if (e.name === 'story') return S.stories.some(x => x.id === id);
+  if (e.name === 'editor') return !id || S.stories.some(x => x.id === id);
+  if (e.name === 'shortcut') return !e.props?.chatId || S.chats.some(c => c.id === e.props.chatId);
+  return true;
+};
+export function startHistory(){
+  if (!hasHist) return;
+  record(false);
+  addEventListener('popstate', ev => {
+    const nav = ev.state?.nav;
+    if (!Array.isArray(nav) || !nav.length) return;
+    const ok = [];
+    for (const e of nav){ if (!alive(e)) break; ok.push(e); }
+    ui.nav = ok.length ? ok : [{name:'home'}];
+    if (ok.length !== nav.length) record(false);
+    closeSheet(); closeDrawer();
+    notify();
+  });
+}
 export function goHome(){ tab('home'); }
 
 // 닫을 때 애니메이션이 끝난 뒤에 지운다

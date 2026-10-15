@@ -1,5 +1,6 @@
 import { S, setState, commit, closeSheet, goHome, toast } from './store';
 import { MODELS, defaultState, newStory, uid } from './constants';
+import { ask } from '../sheets';
 
 export const escT = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 export const chatById = id => S.chats.find(c => c.id === id);
@@ -66,7 +67,15 @@ export async function importFile(){
         else S.personas.push(p = {id:uid(), name:d.persona.name, desc:d.persona.desc || ''});
         st.personaId = p.id;
       }
-      S.stories.push(st); closeSheet(); commit(); goHome(); toast(`'${st.title}' 스토리를 추가했어요.`); return;
+      // 같은 제목이 이미 있으면 그 자리를 새 내용으로 바꿀지 묻는다, id 를 유지해서 진행 중인 대화가 그대로 이어진다
+      const old = S.stories.find(x => x.title === st.title);
+      const add = () => { S.stories.push(st); closeSheet(); commit(); goHome(); toast(`'${st.title}' 스토리를 추가했어요.`); };
+      if (!old) return add();
+      ask(`'${st.title}' 스토리가 이미 있어요. 새 파일 내용으로 바꿀까요? 진행 중인 대화는 그대로 남아요.`, '바꾸기', () => {
+        Object.assign(old, st, {id:old.id, created:old.created});
+        commit(); goHome(); toast(`'${st.title}' 스토리를 새 내용으로 바꿨어요.`);
+      });
+      return;
     }
     const key = S.settings.apiKey, nk = S.settings.naiKey;
     const next = Object.assign(defaultState(), d);

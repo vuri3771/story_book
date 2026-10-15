@@ -1,6 +1,6 @@
 import { useStore, go, back, replace, commit, openSheet } from '../lib/store';
 import { CharacterSheet, CharPh } from '../sheets';
-import { Badge19 } from '../render';
+import { Badge19, Ava } from '../render';
 import { uid } from '../lib/constants';
 import { storyOf, personaOf, coverOf, plain, ago } from '../lib/helpers';
 import { Icon } from '../icons';
@@ -31,7 +31,7 @@ export default function StoryPage({id}){
         <div className="cast">{cast.map((x, i) => {
           const role = (x.profile.match(/^\s*\[([^\]]+)\]/) || [])[1]?.replace(/\s*\d+\s*\/\s*\d+\s*$/, '');
           return <button key={x.id || i} onClick={() => openSheet(<CharacterSheet ch={x}/>)}>
-            {x.image ? <img className="ph" src={x.image} alt=""/> : <CharPh name={x.name}/>}
+            {x.image ? <Ava ch={x} className="ph"/> : <CharPh name={x.name}/>}
             <span>{x.name}</span>{role && <small>{role}</small>}
           </button>;
         })}</div>

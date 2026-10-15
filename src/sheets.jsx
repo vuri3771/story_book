@@ -7,6 +7,7 @@ import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
 import { remoteOn, token, switchAccount, testCharge, syncStatus } from './lib/remote';
 import { Icon } from './icons';
+import { Ava } from './render';
 import { FONTS, look, setLook, loadFont, SIZE_MIN, SIZE_MAX } from './lib/look';
 
 export function Sheet({children, ok, danger, onOk}){
@@ -130,7 +131,7 @@ export function CharacterSheet({ch}){
   return (
     <Sheet>
       <div style={{padding:'0 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:10}}>
-        {ch.image ? <img src={ch.image} alt="" style={{width:120, height:120, borderRadius:'50%', objectFit:'cover'}}/> : <CharPh name={ch.name} size={120}/>}
+        {ch.image ? <Ava ch={ch} style={{width:120, height:120, borderRadius:'50%', objectFit:'cover'}}/> : <CharPh name={ch.name} size={120}/>}
         <h3 style={{padding:0}}>{ch.name}</h3>
       </div>
       <div className="note" style={{whiteSpace:'pre-wrap', fontSize:15, lineHeight:1.7, paddingTop:8}}>{ch.profile || '아직 소개가 없어요.'}</div>

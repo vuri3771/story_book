@@ -169,3 +169,22 @@
 /* 대화 화면 제목 : 눌러서 스토리로 */
 .hdr .t-link{text-align:left;min-width:0}
 .hdr .t-link:hover{opacity:.7}
+
+/* 메시지 길게 누르기 메뉴 */
+.mmenu-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.18);animation:fadein .15s}
+.mmenu{position:fixed;width:224px;background:var(--bg);border-radius:14px;box-shadow:0 10px 32px rgba(0,0,0,.22);overflow:hidden;animation:popin .15s}
+.mmenu button{display:block;width:100%;text-align:left;padding:14px 18px;font-size:16px;border-bottom:1px solid var(--line)}
+.mmenu button:last-child{border-bottom:0}
+.mmenu button:active{background:var(--surface)}
+@keyframes fadein{from{opacity:0}}
+@keyframes popin{from{opacity:0;transform:scale(.96)}}
+@media (prefers-reduced-motion: reduce){.mmenu-bg,.mmenu{animation:none}}
+/* 터치 기기에선 길게 누를 때 브라우저 글자 선택과 기본 메뉴 대신 앱 메뉴를 띄운다 */
+@media (hover:none){ #log .m{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none} }
+/* 얼굴만 확대한 인물 동그라미 */
+.ava-crop{position:relative;display:inline-block;overflow:hidden;border-radius:50%;background:var(--surface2);flex-shrink:0}
+.ava-crop img{position:absolute;left:50%;top:50%;max-width:none;height:auto;display:block}
+.prof .pimg{width:76px;height:76px}
+/* 맨 아래로 버튼 */
+.jump{position:absolute;right:16px;top:-52px;width:42px;height:42px;border-radius:50%;background:var(--bg);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.12);display:grid;place-items:center;color:var(--narr);z-index:5}
+.jump svg{width:20px;height:20px;transform:rotate(90deg)}

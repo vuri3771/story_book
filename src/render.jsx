@@ -48,8 +48,18 @@ export function pickScene(text, st, avoid){
 
 const avatarOf = (st, who) => {
   const n = who.trim();
-  return st?.characters.find(c => c.image && c.name && (n === c.name || n.includes(c.name)))?.image;
+  return st?.characters.find(c => c.image && c.name && (n === c.name || n.includes(c.name)));
 };
+
+// 인물 사진 동그라미 : face 가 있으면 그림의 얼굴 부분만 확대해서 보여준다
+// face = {x, y : 얼굴 가운데 위치(그림 너비, 높이 대비 %), w : 동그라미에 담을 너비(그림 너비 대비 %)}
+export function Ava({ch, className, style}){
+  const f = ch.face;
+  if (!f) return <img className={className} style={style} src={ch.image} alt=""/>;
+  return <span className={'ava-crop ' + (className || '')} style={style}>
+    <img src={ch.image} alt="" style={{width:(10000 / f.w) + '%', transform:`translate(-${f.x}%, -${f.y}%)`}}/>
+  </span>;
+}
 
 export function renderAI(text, st, turn, scene){
   const out = []; let k = 0, infoAt = -1;
@@ -67,7 +77,7 @@ export function renderAI(text, st, turn, scene){
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
       const d = line.match(/^([^|"“*\[]{1,24}?)\s*[|｜]\s*(.+)$/);
-      if (d){ const av = avatarOf(st, d[1]); out.push(<p key={k++} className="dlg">{av && <img className="ava" src={av} alt=""/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></p>); continue; }
+      if (d){ const av = avatarOf(st, d[1]); out.push(<p key={k++} className="dlg">{av && <Ava ch={av} className="ava"/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></p>); continue; }
       out.push(<p key={k++} className="narr"><Inline s={line}/></p>);
     }
   }

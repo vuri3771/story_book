@@ -37,7 +37,7 @@ export default function StoryEditor({id}){
       for (const file of files){
         const data = await readImage(file, target === 'vault' ? 900 : 640);
         if (target === 'cover') d.cover = data;
-        else if (target.startsWith('char:')) d.characters[+target.slice(5)].image = data;
+        else if (target.startsWith('char:')) { const ch = d.characters[+target.slice(5)]; ch.image = data; delete ch.face; }
         else if (d.images.length < 50){ const im = {id:uid(), tag:'', data}; d.images.push(im); added.push(im); }
       }
     } catch(e){ toast('이미지를 읽지 못했어요.'); }
