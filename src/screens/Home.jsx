@@ -1,5 +1,5 @@
 import { useStore, go, tab } from '../lib/store';
-import { storyOf, coverOf, plain, ago, credit, importFile } from '../lib/helpers';
+import { storyOf, coverOf, plain, ago, usd, monthUsd, importFile } from '../lib/helpers';
 import { usingProxy } from '../lib/api';
 import { isAdultChat } from '../lib/engine';
 import { Badge19 } from '../render';
@@ -16,9 +16,9 @@ export default function Home(){
   const S = useStore();
   const chats = S.chats.slice().sort((a,b) => (b.updated||0) - (a.updated||0)).filter(c => storyOf(c));
   const stories = S.stories.slice().sort((a,b) => (b.created||0) - (a.created||0));
-  const bal = S.wallet?.balance || 0;
+  const month = monthUsd(S);
   return <>
-    <div className="hdr"><div className="t">스토리챗</div><button className="pill" onClick={() => tab('charge')}>{credit(bal)} 크레딧</button></div>
+    <div className="hdr"><div className="t">스토리챗</div><button className="pill" onClick={() => tab('charge')}>이번 달 {usd(month)}</button></div>
     <div className="scroll"><div className="page">
       {!usingProxy && !S.settings.apiKey && <div className="banner">API 키를 넣으면 바로 대화할 수 있어요.<button onClick={openSettings}>키 입력</button></div>}
       <div className="hero-home">
@@ -42,8 +42,8 @@ export default function Home(){
 
       <Recommend/>
 
-      <div className="sec-h"><b>크레딧</b></div>
-      <div className="wallet"><div><small>보유 크레딧</small><div className="wv">{credit(bal)}</div></div><button onClick={() => tab('charge')}>충전하기</button></div>
+      <div className="sec-h"><b>쓴 금액</b></div>
+      <div className="wallet"><div><small>이번 달</small><div className="wv">{usd(month)}</div></div><button onClick={() => tab('charge')}>자세히</button></div>
       <div style={{height:28}}/>
     </div></div>
   </>;
@@ -85,7 +85,7 @@ function IdeaSheet({idea}){
     <div className="rec-body">
       <p>{idea.intro || idea.hook}</p>
       {Array.isArray(idea.cast) && idea.cast.length > 0 && <><b>등장인물</b><ul>{idea.cast.map((c, i) => <li key={i}>{String(c)}</li>)}</ul></>}
-      <div className="note" style={{padding:0}}>만들기를 누르면 기본 모델이 세계관, 인물 설정, 첫 장면까지 써서 내 스토리에 추가해요. 크레딧이 조금 들어요.</div>
+      <div className="note" style={{padding:0}}>만들기를 누르면 기본 모델이 세계관, 인물 설정, 첫 장면까지 써서 내 스토리에 추가해요. 몇 센트 정도 들어요.</div>
     </div>
     {busy && <div className="gen-bar" style={{margin:'0 20px 8px'}}><i/></div>}
     <div className="sb"><button className="btn" disabled={busy} onClick={closeSheet}>닫기</button><button className="btn dark" disabled={busy} onClick={make}>{busy ? '만드는 중… (30초쯤)' : '이 스토리 만들기'}</button></div>

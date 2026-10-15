@@ -25,11 +25,12 @@ export const PRICES = {
   'claude-sonnet-5-5': {in:2, out:10, cr:0.2},
   'claude-haiku-5-5': {in:0.1, out:0.5, cr:0.01}
 };
-const KRW = () => +process.env.KRW || 1400;
-export function costKrw(model, u){
+export const KRW = () => +process.env.KRW || 1400;
+export function costUsd(model, u){
   const m = PRICES[model]; if (!m) return 0;
-  return (u.in * m.in + u.cw * m.in * 1.25 + u.cr * m.cr + u.out * m.out) / 1e6 * KRW();
+  return (u.in * m.in + u.cw * m.in * 1.25 + u.cr * m.cr + u.out * m.out) / 1e6;
 }
+export const costKrw = (model, u) => costUsd(model, u) * KRW();
 
 // 충전 상품, 프론트 PACKAGES 와 같은 값. 금액은 반드시 서버 표를 따른다
 export const PACKAGES = {
@@ -46,8 +47,14 @@ export async function getWallet(uid){
   return {balance: it.balance || 0, spent: it.spent || 0, history: it.history || []};
 }
 
-export async function deduct(uid, cost){
-  if (!(cost > 0)) return;
+// 쓴 금액 기록 : 전체 누적(wallet.spent, 원)과 한국 날짜별 usage#YYYY-MM-DD(달러, 횟수, 모델별 달러)
+// usage# 는 getState 가 읽는 키 범위(k < img#, meta ~ story$) 밖이라 동기화 데이터와 섞이지 않는다
+export const dayKst = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+export async function record(uid, model, u){
+  const usd = costUsd(model, u);
+  if (!(usd > 0)) return;
   await ddb.send(new UpdateCommand({TableName:TABLE, Key:{uid, k:'wallet'},
-    UpdateExpression:'ADD balance :n, spent :c', ExpressionAttributeValues:{':n':-cost, ':c':cost}}));
+    UpdateExpression:'ADD spent :c', ExpressionAttributeValues:{':c':usd * KRW()}}));
+  await ddb.send(new UpdateCommand({TableName:TABLE, Key:{uid, k:'usage#' + dayKst()},
+    UpdateExpression:'ADD usd :d, calls :one, #m :d', ExpressionAttributeNames:{'#m':'m_' + model}, ExpressionAttributeValues:{':d':usd, ':one':1}}));
 }

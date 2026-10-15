@@ -28,19 +28,10 @@ export const DEFAULT_SHORTCUTS = [
 ];
 export const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
 export function defaultState(){
-  return {v:2, settings:{apiKey:'', model:'claude-opus-5-5', helperModel:'claude-haiku-5-5', effort:'low', length:'normal', keepRecent:30, summarizeEvery:20, krw:1400, noFallback:false, naiKey:'', naiModel:'glm-4-6', naiBase:NAI_BASE},
-    personas:[{id:uid(), name:'나', desc:''}], stories:[], chats:[], shortcuts: DEFAULT_SHORTCUTS.map(x => ({...x})), usage:{krw:0}, wallet:{balance:0, history:[]}};
+  return {v:2, settings:{apiKey:'', model:'claude-opus-5-5', helperModel:'claude-haiku-5-5', effort:'low', length:'normal', keepRecent:30, summarizeEvery:20, krw:1400, noFallback:false, paidUsd:5, naiKey:'', naiModel:'glm-4-6', naiBase:NAI_BASE},
+    personas:[{id:uid(), name:'나', desc:''}], stories:[], chats:[], shortcuts: DEFAULT_SHORTCUTS.map(x => ({...x})), usage:{krw:0}, spend:null};
 }
 
-// 충전 상품, 1크레딧 = 1원
-export const PACKAGES = [
-  {id:'c3000', price:3000, bonus:0},
-  {id:'c5000', price:5000, bonus:250},
-  {id:'c10000', price:10000, bonus:1000, best:true},
-  {id:'c30000', price:30000, bonus:4500},
-  {id:'c50000', price:50000, bonus:10000}
-];
-export const PAY_METHODS = [{id:'card', name:'신용, 체크카드'}, {id:'kakao', name:'카카오페이'}, {id:'toss', name:'토스페이'}];
 
 // 답변 길이별 예상 글자 수, 게이지 계산용
 export const EXPECTED_CHARS = {short:700, normal:1300, long:2600};

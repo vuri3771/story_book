@@ -12,7 +12,8 @@ setDdb({ async send(cmd){
   if (n === 'UpdateCommand'){
     const it = db.get(key(i.Key.uid, i.Key.k)) || {uid:i.Key.uid, k:i.Key.k};
     const v = i.ExpressionAttributeValues;
-    if (i.UpdateExpression.includes('balance :n')){ it.balance = (it.balance || 0) + v[':n']; it.spent = (it.spent || 0) + v[':c']; }
+    if (i.UpdateExpression === 'ADD spent :c') it.spent = (it.spent || 0) + v[':c'];
+    if (i.Key.k.startsWith('usage#')){ const m = i.ExpressionAttributeNames['#m']; it.usd = (it.usd || 0) + v[':d']; it.calls = (it.calls || 0) + v[':one']; it[m] = (it[m] || 0) + v[':d']; }
     if (i.UpdateExpression.includes('balance :c')){ it.balance = (it.balance || 0) + v[':c']; it.history = [...v[':h'], ...(it.history || [])]; }
     db.set(key(i.Key.uid, i.Key.k), it); return {};
   }
@@ -85,10 +86,16 @@ assert.equal(sentBody.tools, undefined, '허용 안 한 필드는 빠져야 한�
 assert.equal(sentBody.max_tokens, 20000);
 assert.equal(sentHeaders['x-api-key'], 'test-key');
 assert.equal(sentHeaders['anthropic-beta'], 'server-side-fallback-2026-07-01');
-// 비용 : (1000*4 + 9000*0.2 + 500*20) / 1e6 * 1400 = 22.12원
+// 비용 : (1000*4 + 9000*0.2 + 500*20) / 1e6 = 0.0158달러 = 22.12원
 const w = (await call('GET', '/wallet')).b;
-assert.ok(Math.abs(w.balance - (11000 - 22.12)) < 0.001, 'balance ' + w.balance);
-// 잔액 0 인 사용자, 모르는 모델
-assert.equal((await run({model:'claude-opus-5-5', messages:[]}, 'c'.repeat(40))).status, 402);
+assert.ok(Math.abs(w.spent - 22.12) < 0.001, 'spent ' + w.spent);
+const us = (await call('GET', '/usage')).b;
+assert.equal(us.days.length, 1);
+assert.ok(Math.abs(us.days[0].usd - 0.0158) < 1e-9 && us.days[0].calls === 1 && Math.abs(us.days[0].models['claude-opus-5-5'] - 0.0158) < 1e-9, JSON.stringify(us));
+assert.ok(Math.abs(us.totalUsd - 0.0158) < 1e-9);
+// usage# 는 동기화 데이터(/state)에 섞이지 않는다
+assert.ok(!(await call('GET', '/state')).b.items.some(x => x.k.startsWith('usage#')));
+// 개인용이라 잔액이 없어도 막지 않는다, 모르는 모델은 거절
+assert.equal((await run({model:'claude-opus-5-5', stream:true, messages:[{role:'user', content:'hi'}]}, 'c'.repeat(40))).status, 200);
 assert.equal((await run({model:'gpt-4', messages:[]})).status, 400);
 console.log('all server tests passed');

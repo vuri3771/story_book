@@ -9,7 +9,7 @@ import { authHeader, refreshWallet } from './remote';
 
 const PROXY = import.meta.env.VITE_CLAUDE_PROXY_URL || '';
 
-// 서버 키 모드에서는 끝날 때마다 서버 지갑 잔액을 다시 받아온다
+// 서버 키 모드에서는 끝날 때마다 서버에 기록된 쓴 금액을 다시 받아온다
 export async function callClaude(args){
   try { return await callClaudeRaw(args); }
   finally { if (PROXY && modelOf(args.model).provider !== 'nai') refreshWallet(); }
@@ -116,19 +116,16 @@ async function safeFetch(url, opts){
 }
 function apiError(status, t){
   let msg = t; try { msg = JSON.parse(t).error?.message || t; } catch(e){}
-  if (status === 402) return '크레딧이 부족해요. 충전 후 이용해주세요.';
   if (status === 401) return PROXY ? '서버 인증에 실패했어요. 새로고침 후 다시 시도해주세요.' : 'API 키가 맞지 않아요. 설정에서 키를 확인해주세요.';
   if (status === 429) return '요청이 너무 많아요. 잠시 후 다시 보내주세요.';
   if (status === 529 || status >= 500) return '서버가 바빠요. 잠시 후 다시 시도해주세요.';
-  if (/credit|balance/i.test(msg)) return '크레딧이 부족해요. console.anthropic.com에서 충전해주세요.';
+  if (/credit|balance/i.test(msg)) return 'Anthropic 잔액이 부족해요. console.anthropic.com에서 충전해주세요.';
   return `오류 ${status}: ${String(msg).slice(0, 200)}`;
 }
 export function costOf(u, modelId){ const m = modelOf(modelId); return (u.in * m.in + u.cw * m.in * 1.25 + u.cr * m.cr + u.out * m.out) / 1e6 * S.settings.krw; }
 export function track(u, modelId, chat, msg){
   const k = costOf(u, modelId);
   S.usage.krw = (S.usage.krw || 0) + k;
-  // 서버 키 모드에서만 크레딧을 깎는다, 내 키 모드는 요금이 내 Anthropic 계정으로 나간다
-  if (PROXY && S.wallet) S.wallet.balance = (S.wallet.balance || 0) - k;
   if (chat) chat.cost = (chat.cost || 0) + k;
   if (msg){ msg.cost = (msg.cost || 0) + k; const tot = u.in + u.cr + u.cw; msg.cache = tot ? Math.round(u.cr / tot * 100) : 0; }
   if (msg && chat) chat.lastUsage = u;

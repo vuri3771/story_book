@@ -75,6 +75,6 @@ export function toast(msg){ ui.toast = msg; notify(); clearTimeout(toastTimer); 
 
 export async function boot(){
   const d = await load();
-  if (d){ S = Object.assign(defaultState(), d); S.settings = Object.assign(defaultState().settings, d.settings); if (!S.shortcuts) S.shortcuts = DEFAULT_SHORTCUTS.map(x => ({...x})); if (!S.wallet) S.wallet = {balance:0, history:[]}; }
+  if (d){ S = Object.assign(defaultState(), d); S.settings = Object.assign(defaultState().settings, d.settings); if (!S.shortcuts) S.shortcuts = DEFAULT_SHORTCUTS.map(x => ({...x})); delete S.wallet; }
   notify();
 }

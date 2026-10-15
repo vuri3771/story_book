@@ -1,6 +1,6 @@
-// story-claude : Lambda 함수 URL(응답 스트리밍)로 Claude 를 대신 부르고 쓴 만큼 크레딧을 깎는다
+// story-claude : Lambda 함수 URL(응답 스트리밍)로 Claude 를 대신 부르고 쓴 금액을 기록한다
 // Anthropic 키는 이 함수의 환경변수 ANTHROPIC_API_KEY 에만 있다. CORS 는 함수 URL 설정이 붙인다
-import { uidFrom, getWallet, deduct, costKrw, PRICES } from './common.mjs';
+import { uidFrom, record, PRICES } from './common.mjs';
 
 const ANTHROPIC = 'https://api.anthropic.com/v1/messages';
 // 서버측 도구(웹 검색 등)로 요금이 새지 않게 허용한 필드만 넘긴다
@@ -20,9 +20,6 @@ export async function handle(event, out){
   for (const k of ALLOWED) if (req[k] !== undefined) body[k] = req[k];
   body.max_tokens = Math.min(Math.max(1, +body.max_tokens || 1024), 20000);
 
-  const w = await getWallet(uid);
-  if (w.balance <= 0) return json(402, '크레딧이 부족해요. 충전 후 이용해주세요.');
-
   const headers = {'content-type':'application/json', 'x-api-key':process.env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01'};
   const beta = event.headers?.['anthropic-beta'];
   if (beta && /^[\w,.-]{1,200}$/.test(beta)) headers['anthropic-beta'] = beta;
@@ -35,7 +32,7 @@ export async function handle(event, out){
     const t = await res.text();
     if (res.ok){ try { addU(JSON.parse(t).usage); } catch(e){} }
     out.start(res.status, {'content-type':'application/json'}); out.write(t); out.end();
-    if (res.ok) await deduct(uid, costKrw(body.model, u));
+    if (res.ok) await record(uid, body.model, u);
     return;
   }
 
@@ -56,7 +53,7 @@ export async function handle(event, out){
     }
   } finally {
     out.end();
-    await deduct(uid, costKrw(body.model, u));
+    await record(uid, body.model, u);
   }
 }
 

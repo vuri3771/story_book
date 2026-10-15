@@ -1,11 +1,11 @@
 // ================= 시트 =================
 import { useState } from 'react';
 import { S, commit, openSheet, closeSheet, closeDrawer, toast, ui, useStore } from './lib/store';
-import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, PAY_METHODS, uid } from './lib/constants';
+import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, uid } from './lib/constants';
 import { modelOf, won, storyOf, exportAll, importFile } from './lib/helpers';
 import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
-import { remoteOn, token, switchAccount, testCharge, syncStatus } from './lib/remote';
+import { remoteOn, token, switchAccount, syncStatus } from './lib/remote';
 import { Icon } from './icons';
 import { Ava } from './render';
 import { FONTS, look, setLook, loadFont, SIZE_MIN, SIZE_MAX } from './lib/look';
@@ -102,7 +102,7 @@ export function SettingsForm({inSheet}){
   );
 }
 
-// ----- 다른 기기에서 이어하기 : 기기 토큰이 곧 계정이라 코드를 옮기면 같은 내용과 크레딧을 쓴다 -----
+// ----- 다른 기기에서 이어하기 : 기기 토큰이 곧 계정이라 코드를 옮기면 같은 내용과 사용 기록을 쓴다 -----
 function AccountCode(){
   const [show, setShow] = useState(false);
   const [code, setCode] = useState('');
@@ -142,30 +142,6 @@ export function CharacterSheet({ch}){
 export function CharPh({name, size = 58}){
   let h = 0; for (const c of String(name || '?')) h = (h * 31 + c.charCodeAt(0)) % 360;
   return <span className="ph" style={{width:size, height:size, fontSize:size * .36, background:`hsl(${h},42%,48%)`}}>{String(name || '?').slice(0, 1)}</span>;
-}
-
-// ----- 결제 확인 -----
-// 결제대행사(PG) 연동 전이라 테스트 충전으로 처리한다, 연동하면 requestPayment 자리를 바꾼다
-export function PayConfirmSheet({pkg, onDone}){
-  const [method, setMethod] = useState(PAY_METHODS[0].id);
-  return (
-    <Sheet ok="테스트 충전하기" onOk={() => {
-      const total = pkg.price + pkg.bonus;
-      // 서버 연결 시 잔액은 서버가 정한다
-      if (remoteOn){
-        testCharge(pkg.id, method).then(() => { toast(`${total.toLocaleString('ko-KR')} 크레딧을 충전했어요.`); onDone?.(); }).catch(e => toast('충전 실패 : ' + e.message));
-        return;
-      }
-      S.wallet.balance = (S.wallet.balance || 0) + total;
-      S.wallet.history.unshift({id:uid(), price:pkg.price, credit:total, method, at:Date.now(), test:true});
-      commit(); toast(`${total.toLocaleString('ko-KR')} 크레딧을 충전했어요.`); onDone?.();
-    }}>
-      <h3>{pkg.price.toLocaleString('ko-KR')}원 결제</h3>
-      <div className="note">충전되는 크레딧 {(pkg.price + pkg.bonus).toLocaleString('ko-KR')}{pkg.bonus ? ` (보너스 ${pkg.bonus.toLocaleString('ko-KR')} 포함)` : ''}</div>
-      {PAY_METHODS.map(m => <button key={m.id} className="opt" onClick={() => setMethod(m.id)}><span className="mid"><b>{m.name}</b></span>{method === m.id && <span className="chk">✓</span>}</button>)}
-      <div className="note" style={{paddingTop:8}}>아직 결제 연동 전이라 실제 결제 없이 테스트 크레딧이 들어가요.</div>
-    </Sheet>
-  );
 }
 
 // ----- 모델 선택 -----

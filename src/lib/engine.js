@@ -38,7 +38,6 @@ export async function generate(c){
 // 성공하면 true, 보낼 게 없거나 단축어가 틀리면 false
 export function send(c, text){
   const t = String(text).trim(); if (!t || run.busy) return false;
-  if (usingProxy && (S.wallet?.balance || 0) <= 0){ toast('크레딧이 부족해요. 충전 후 이어서 해주세요.'); go('charge'); return false; }
   const exp = t.startsWith('/') ? expandShortcut(t, c) : null;
   if (t.startsWith('/') && !exp){ toast('없는 단축어예요. / 를 눌러 목록을 확인하세요.'); return false; }
   c.messages.push(exp ? {role:'user', text:t, send:exp} : {role:'user', text:t});
@@ -51,7 +50,6 @@ const CONT_PROMPT = '(사용자는 이번에 아무 말도 하지 않았다. 직
 export function cont(c){
   if (run.busy || !c?.messages.length) return false;
   if (c.messages[c.messages.length-1].role === 'user'){ regen(c); return true; }
-  if (usingProxy && (S.wallet?.balance || 0) <= 0){ toast('크레딧이 부족해요. 충전 후 이어서 해주세요.'); go('charge'); return false; }
   c.messages.push({role:'user', text:'', send:CONT_PROMPT, cont:true});
   generate(c);
   return true;

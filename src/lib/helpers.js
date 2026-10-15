@@ -17,7 +17,10 @@ export const modelOf = id => MODELS.find(m => m.id === id) || MODELS[1];
 export const mainChar = st => st?.characters?.find(x => x.name)?.name || '캐릭터';
 export function fill(t, c){ const st = storyOf(c); const u = personaOf(c)?.name || '나', ch = mainChar(st);
   return String(t||'').replaceAll('{{user}}', u).replaceAll('{{char}}', ch).replaceAll('{user}', u).replaceAll('{char}', ch); }
-export const credit = n => Math.max(0, Math.floor(n || 0)).toLocaleString('ko-KR');
+// 달러 표시 : 1센트 아래는 소수 셋째 자리까지
+export const usd = n => '$' + (Math.abs(n) < 0.01 && n ? n.toFixed(3) : (n || 0).toFixed(2));
+// 이번 달 쓴 달러 : 서버 기록이 있으면 그걸, 없으면(내 키 모드) 이 기기 누적만 알 수 있다
+export const monthUsd = S => { const m = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7); return (S.spend?.days || []).filter(d => d.day.startsWith(m)).reduce((a, d) => a + d.usd, 0); };
 export function won(n){ return n < 10 ? n.toFixed(1) : Math.round(n).toLocaleString('ko-KR'); }
 export function plain(t){ return String(t).replace(/```[\s\S]*?```/g, '').replace(/\[\[[^\]]*\]\]/g, '').replace(/[*|"]/g, '').replace(/\s+/g, ' ').trim(); }
 export function ago(t){ if (!t) return ''; const m = (Date.now() - t) / 60000; return m < 1 ? '방금' : m < 60 ? Math.floor(m) + '분 전' : m < 1440 ? Math.floor(m/60) + '시간 전' : Math.floor(m/1440) + '일 전'; }

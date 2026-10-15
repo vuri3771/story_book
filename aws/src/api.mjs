@@ -1,7 +1,7 @@
 // story-api : API Gateway(HTTP API) 뒤에서 저장, 불러오기, 지갑을 처리한다
 // CORS 는 API Gateway 설정이 붙인다
 import { QueryCommand, BatchWriteCommand, BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { ddb, TABLE, uidFrom, getWallet, PACKAGES } from './common.mjs';
+import { ddb, TABLE, uidFrom, getWallet, PACKAGES, KRW } from './common.mjs';
 
 const KEY_RE = /^(meta|story#[\w-]{1,40}|chat#[\w-]{1,40}(#\d{1,4})?|img#[\w-]{1,40})$/;
 const MAX_ITEM = 390 * 1024;
@@ -25,6 +25,7 @@ export const handler = async event => {
       case 'POST /sync': return await sync(uid, body);
       case 'POST /images': return await images(uid, body);
       case 'GET /wallet': return res(200, await getWallet(uid));
+      case 'GET /usage': return res(200, await getUsage(uid));
       case 'POST /wallet/test-charge': return await testCharge(uid, body);
       default: return res(404, {error:'없는 주소예요.'});
     }
@@ -88,6 +89,24 @@ async function images(uid, {keys = []}){
     if (pending.length){ if (++tries > 6) break; await sleep(100 * 2 ** tries); }
   }
   return res(200, {images:out});
+}
+
+// 쓴 금액 : 날짜별 기록과 전체 누적(날짜별 기록을 만들기 전 사용분까지 포함)
+async function getUsage(uid){
+  const days = [];
+  let start;
+  do {
+    const r = await ddb.send(new QueryCommand({TableName:TABLE, KeyConditionExpression:'uid = :u AND k BETWEEN :a AND :b',
+      ExpressionAttributeValues:{':u':uid, ':a':'usage#', ':b':'usage$'}, ExclusiveStartKey:start}));
+    for (const it of r.Items || []){
+      const models = {};
+      for (const [f, v] of Object.entries(it)) if (f.startsWith('m_')) models[f.slice(2)] = v;
+      days.push({day:it.k.slice(6), usd:it.usd || 0, calls:it.calls || 0, models});
+    }
+    start = r.LastEvaluatedKey;
+  } while (start);
+  const w = await getWallet(uid);
+  return {days, totalUsd:(w.spent || 0) / KRW()};
 }
 
 // 결제대행사 연동 전 테스트 충전, ALLOW_TEST_CHARGE=1 일 때만 열린다

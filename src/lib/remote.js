@@ -26,15 +26,11 @@ async function call(path, body){
   return j;
 }
 
-// ----- 지갑 -----
+// ----- 쓴 금액 : 서버가 날짜별로 기록한 것을 받아온다 -----
 export async function refreshWallet(){
   if (!remoteOn) return;
-  try { const w = await call('/wallet'); S.wallet = {balance:w.balance, history:w.history || []}; notify(); save(); }
-  catch(e){ console.warn('지갑 불러오기 실패', e); }
-}
-export async function testCharge(pkg, method){
-  const w = await call('/wallet/test-charge', {pkg, method});
-  S.wallet = {balance:w.balance, history:w.history || []}; notify(); save();
+  try { const u = await call('/usage'); S.spend = {days:u.days || [], totalUsd:u.totalUsd || 0, at:Date.now()}; notify(); save(); }
+  catch(e){ console.warn('사용 금액 불러오기 실패', e); }
 }
 
 // ----- 상태를 항목으로 쪼개기 -----
@@ -143,7 +139,7 @@ export async function pullState(){
   if (meta.personas?.length) next.personas = meta.personas;
   if (meta.shortcuts) next.shortcuts = meta.shortcuts;
   if (meta.usage) next.usage = meta.usage;
-  next.wallet = S.wallet;
+  next.spend = S.spend;
   const stories = [...map].filter(([k]) => /^story#[^#]+$/.test(k)).map(([, d]) => JSON.parse(d));
   // 이미지 받아서 자리 채우기
   const need = new Set();

@@ -12,7 +12,7 @@ import ChatPage from './screens/ChatPage';
 import ShortcutEditor from './screens/ShortcutEditor';
 
 const SCREENS = { home:Home, stories:Stories, chats:Chats, charge:Charge, settings:Settings, story:StoryPage, editor:StoryEditor, chat:ChatPage, shortcut:ShortcutEditor };
-const TABS = [['home','홈','home'], ['stories','내 스토리','book'], ['chats','이어서 하기','chat'], ['charge','충전','wallet'], ['settings','설정','gear']];
+const TABS = [['home','홈','home'], ['stories','내 스토리','book'], ['chats','이어서 하기','chat'], ['charge','쓴 금액','wallet'], ['settings','설정','gear']];
 
 export default function App(){
   useStore();
