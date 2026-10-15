@@ -21,6 +21,7 @@ export const PRICES = {
   'claude-fable-5-1': {in:10, out:50, cr:0.25},
   'claude-opus-5-5': {in:4, out:20, cr:0.2},
   'claude-opus-5': {in:5, out:25, cr:0.5},
+  'claude-opus-4-6': {in:5, out:25, cr:0.5},
   'claude-sonnet-5-5': {in:2, out:10, cr:0.2},
   'claude-haiku-5-5': {in:0.1, out:0.5, cr:0.01}
 };

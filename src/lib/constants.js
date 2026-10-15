@@ -3,6 +3,7 @@ export const MODELS = [
   {id:'claude-fable-5-1', name:'Fable 5.1', desc:'가장 뛰어난 모델. 복잡한 관계와 긴 서사도 깊이 있게', in:10, out:50, cr:0.25, color:'#f0892b', icon:'spark', fb:true},
   {id:'claude-opus-5-5', name:'Opus 5.5', desc:'살아 숨쉬는 캐릭터와 압도적 몰입감, 가격 대비 최고', in:4, out:20, cr:0.2, color:'#4f7cff', icon:'zap', fb:true, rec:true},
   {id:'claude-opus-5', name:'Opus 5', desc:'문학적인 서사로 매 순간이 명장면인 스토리', in:5, out:25, cr:0.5, color:'#34b46a', icon:'zap', fb:true},
+  {id:'claude-opus-4-6', name:'Opus 4.6', desc:'이전 세대 Opus. 익숙한 말투가 좋다면', in:5, out:25, cr:0.5, color:'#8a6bd1', icon:'zap'},
   {id:'claude-sonnet-5-5', name:'Sonnet 5.5', desc:'빠르고 능동적인 전개를 절반 가격에', in:2, out:10, cr:0.2, color:'#16a3a3', icon:'zap', fb:true},
   {id:'claude-haiku-5-5', name:'Haiku 5.5', desc:'아주 저렴하게 가볍게 즐기는 스토리', in:0.1, out:0.5, cr:0.01, color:'#e2553f', icon:'zap'},
   {id:'novelai', name:'NovelAI', desc:'성인 장면을 허용하는 모델. NovelAI 구독(정액)으로 써요', in:0, out:0, cr:0, color:'#9b6bff', icon:'spark', provider:'nai'}
