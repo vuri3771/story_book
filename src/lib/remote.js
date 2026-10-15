@@ -3,6 +3,7 @@
 // 지갑은 서버가 정본이라 올리지 않고 받아오기만 한다
 import { S, setState, notify, save, toast } from './store';
 import { defaultState } from './constants';
+import { run } from './engine';
 
 const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 export const remoteOn = !!API;
@@ -147,16 +148,10 @@ export async function pullState(){
   // 이미지 받아서 자리 채우기
   const need = new Set();
   for (const st of stories) for (const [o, f] of IMG_FIELDS(st)) if (typeof o[f] === 'string' && o[f].startsWith('img:')) need.add('img#' + o[f].slice(4));
-  const imgs = {}, keys = [...need];
-  for (let i = 0; i < keys.length; i += 20) Object.assign(imgs, (await call('/images', {keys: keys.slice(i, i + 20)})).images);
-  for (const st of stories) for (const [o, f] of IMG_FIELDS(st)) if (typeof o[f] === 'string' && o[f].startsWith('img:')) o[f] = imgs['img#' + o[f].slice(4)] || '';
+  const imgs = await fetchImages([...need]);
+  for (const st of stories) fillImages(st, imgs);
   next.stories = stories;
-  next.chats = [...map].filter(([k]) => /^chat#[^#]+$/.test(k)).map(([k, d]) => {
-    const c = JSON.parse(d), parts = c.parts || 1; delete c.parts;
-    c.messages = [];
-    for (let i = 0; i < parts; i++) c.messages.push(...JSON.parse(map.get(`${k}#${i}`) || '[]'));
-    return c;
-  });
+  next.chats = [...map].filter(([k]) => /^chat#[^#]+$/.test(k)).map(([k]) => assembleChat(k, map));
   setState(next);
   // 받은 내용이 서버와 같다고 표시해 다시 올리지 않게 한다
   synced = {};
@@ -166,15 +161,118 @@ export async function pullState(){
   return true;
 }
 
-// 시작할 때 : 이 기기에 아무것도 없으면 서버에서 받고, 있으면 바뀐 것만 올린다
+// ----- 받기 도우미 -----
+// 이미지 하나가 최대 380KB 라 Lambda 응답 한도(6MB)를 넘지 않게 8개씩 받는다
+async function fetchImages(keys){
+  const out = {};
+  // 이 기기에 이미 있는 이미지는 다시 받지 않는다
+  for (const st of S.stories) for (const [o, f] of IMG_FIELDS(st)){ const v = o[f]; if (typeof v === 'string' && v.startsWith('data:')) out['img#' + hash(v)] = v; }
+  const missing = [...new Set(keys)].filter(k => !out[k]);
+  for (let i = 0; i < missing.length; i += 8) Object.assign(out, (await call('/images', {keys: missing.slice(i, i + 8)})).images);
+  return out;
+}
+function fillImages(st, imgs){
+  for (const [o, f] of IMG_FIELDS(st)) if (typeof o[f] === 'string' && o[f].startsWith('img:')) o[f] = imgs['img#' + o[f].slice(4)] || '';
+}
+function assembleChat(k, map){
+  const c = JSON.parse(map.get(k)), parts = c.parts || 1; delete c.parts;
+  c.messages = [];
+  for (let i = 0; i < parts; i++) c.messages.push(...JSON.parse(map.get(`${k}#${i}`) || '[]'));
+  return c;
+}
+// 항목 키를 묶음 단위로 : meta, story#id, chat#id(본체와 메시지 조각 전부)
+const groupOf = k => k === 'meta' ? 'meta' : (k.match(/^(story#[^#]+|chat#[^#]+)/) || [])[1];
+function grouped(entries){
+  const g = new Map();
+  for (const [k, d] of entries){ const gk = groupOf(k); if (!gk) continue; if (!g.has(gk)) g.set(gk, new Map()); g.get(gk).set(k, d); }
+  return g;
+}
+// 마지막으로 맞춘 뒤(synced) 이 묶음이 바뀌었는지
+function changedSinceSync(gk, items){
+  const keys = items ? [...items.keys()] : [];
+  const was = Object.keys(synced).filter(k => groupOf(k) === gk);
+  if (was.length !== keys.length) return true;
+  return keys.some(k => synced[k] !== hash(items.get(k)));
+}
+
+// ----- 다른 기기 변경 받아오기(양방향 동기화) -----
+// 서버 쪽만 바뀐 묶음은 받아서 바꾸고, 이 기기만 바뀐 묶음은 그대로 두었다가 올린다
+// 둘 다 바뀌었으면 대화는 더 최근에 쓴 쪽, 나머지는 이 기기 쪽을 남긴다
+export async function mergeRemote(){
+  if (!remoteOn || syncing) return 0;
+  syncing = true;
+  let applied = 0;
+  try {
+    const remoteMap = new Map((await call('/state')).items.map(x => [x.k, x.d]));
+    const remote = grouped(remoteMap), local = grouped(toItems(S));
+    const all = new Set([...remote.keys(), ...local.keys(), ...Object.keys(synced).map(groupOf).filter(Boolean)]);
+    const apply = [];
+    for (const gk of all){
+      if (!changedSinceSync(gk, remote.get(gk))) continue;
+      if (gk.startsWith('chat#') && run.busy && run.chatId === gk.slice(5)) continue;
+      if (changedSinceSync(gk, local.get(gk))){
+        if (!gk.startsWith('chat#') || !remote.has(gk) || !local.has(gk)) continue;
+        const ru = JSON.parse(remote.get(gk).get(gk)).updated || 0, lu = S.chats.find(c => c.id === gk.slice(5))?.updated || 0;
+        if (ru <= lu) continue;
+      }
+      apply.push(gk);
+    }
+    if (!apply.length) return 0;
+    const need = [];
+    for (const gk of apply) if (gk.startsWith('story#') && remote.has(gk)){
+      const st = JSON.parse(remote.get(gk).get(gk));
+      for (const [o, f] of IMG_FIELDS(st)) if (typeof o[f] === 'string' && o[f].startsWith('img:')) need.push('img#' + o[f].slice(4));
+    }
+    const imgs = need.length ? await fetchImages(need) : {};
+    for (const gk of apply){
+      const items = remote.get(gk);
+      if (gk === 'meta'){
+        const meta = JSON.parse(items.get('meta'));
+        S.settings = Object.assign({}, S.settings, meta.settings || {}, {apiKey:S.settings.apiKey, naiKey:S.settings.naiKey});
+        if (meta.personas?.length) S.personas = meta.personas;
+        if (meta.shortcuts) S.shortcuts = meta.shortcuts;
+        if (meta.usage) S.usage = meta.usage;
+      } else {
+        const id = gk.split('#')[1], list = gk.startsWith('story#') ? 'stories' : 'chats';
+        const i = S[list].findIndex(x => x.id === id);
+        if (!items){ if (i >= 0) S[list].splice(i, 1); }
+        else {
+          const obj = list === 'stories' ? JSON.parse(items.get(gk)) : assembleChat(gk, remoteMap);
+          if (list === 'stories') fillImages(obj, imgs);
+          if (i >= 0) S[list][i] = obj; else S[list].push(obj);
+        }
+      }
+      // 이 묶음은 이제 서버와 같다
+      for (const k of Object.keys(synced)) if (groupOf(k) === gk) delete synced[k];
+      if (items) for (const [k, d] of items) synced[k] = hash(d);
+      applied++;
+    }
+    lsSet(SYNCED_KEY, JSON.stringify(synced));
+    notify(); save();
+    return applied;
+  } catch(e){
+    console.warn('서버에서 받기 실패', e);
+    return 0;
+  } finally {
+    syncing = false;
+    if (again){ again = false; scheduleSync(); }
+  }
+}
+
+// 시작할 때 : 이 기기에 아무것도 없으면 통째로 받고, 있으면 다른 기기 변경을 합친 뒤 바뀐 것만 올린다
+// 앱으로 돌아올 때와 열려 있는 동안 45초마다 다시 합친다
+let pollTimer;
 export async function startRemote(){
   if (!remoteOn) return;
   await refreshWallet();
   try {
     const empty = !S.stories.length && !S.chats.length;
     if (empty && await pullState()) toast('서버에서 불러왔어요.');
-    else scheduleSync();
+    else { if (await mergeRemote()) toast('다른 기기 변경 내용을 불러왔어요.'); scheduleSync(); }
   } catch(e){ console.warn('서버 연결 실패', e); toast('서버에 연결하지 못했어요. 이 기기에만 저장돼요.'); }
+  const tick = async () => { if (document.visibilityState !== 'visible') return; if (await mergeRemote()) toast('다른 기기 변경 내용을 불러왔어요.'); refreshWallet(); };
+  document.addEventListener('visibilitychange', tick);
+  clearInterval(pollTimer); pollTimer = setInterval(tick, 45000);
 }
 
 // 다른 기기의 연결 코드로 바꾸기 : 이 기기 내용은 그 계정 내용으로 바뀐다
