@@ -59,6 +59,13 @@ export async function importFile(){
       const st = Object.assign(newStory(), d.story, {id:uid()});
       st.characters = (st.characters||[]).map(x => ({id:uid(), image:'', ...x}));
       st.shortcuts = (st.shortcuts||[]).map(x => ({...x, id:uid()}));
+      // 파일에 대화 프로필이 같이 들어 있으면 같은 이름 프로필을 갱신하거나 새로 만들고 이 스토리의 기본으로 건다
+      if (d.persona?.name){
+        let p = S.personas.find(x => x.name === d.persona.name);
+        if (p) p.desc = d.persona.desc || p.desc;
+        else S.personas.push(p = {id:uid(), name:d.persona.name, desc:d.persona.desc || ''});
+        st.personaId = p.id;
+      }
       S.stories.push(st); closeSheet(); commit(); goHome(); toast(`'${st.title}' 스토리를 추가했어요.`); return;
     }
     const key = S.settings.apiKey, nk = S.settings.naiKey;

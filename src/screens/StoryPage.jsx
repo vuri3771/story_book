@@ -7,8 +7,10 @@ import { Icon } from '../icons';
 
 function newChat(S, storyId){
   const st = storyOf(storyId), s = S.settings;
-  const c = {id:uid(), storyId, personaId:S.personas[0]?.id, messages:[], memory:'', notes:'', summarizedUpTo:0, cost:0,
-    model:s.model, effort:s.effort, length:s.length, style:'novel', customStyle:'', noImpersonate:true, updated:Date.now()};
+  // 스토리에 지정된 대화 프로필과 사칭 방지 기본값이 있으면 그걸로 시작한다
+  const personaId = S.personas.some(p => p.id === st.personaId) ? st.personaId : S.personas[0]?.id;
+  const c = {id:uid(), storyId, personaId, messages:[], memory:'', notes:'', summarizedUpTo:0, cost:0,
+    model:s.model, effort:s.effort, length:s.length, style:'novel', customStyle:'', noImpersonate:st.noImpersonate !== false, updated:Date.now()};
   if (st.greeting) c.messages.push({role:'assistant', text: st.greeting});
   S.chats.push(c); commit(); return c;
 }

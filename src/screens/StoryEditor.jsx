@@ -72,6 +72,12 @@ export default function StoryEditor({id}){
       </div>)}
       <button className="linkbtn" onClick={() => { d.characters.push({id:uid(), name:'', profile:'', image:''}); bump(); }}>+ 등장인물 추가</button>
       {f('commonRules', '등장인물 공통 대화 규칙', '- 모든 인물은 서로 존댓말을 쓴다\n- 대사는 한 번에 두 문장을 넘기지 않는다\n- 군인은 대답할 때 "~습니다"로 끝낸다', 4, '모든 인물에게 한꺼번에 적용돼요')}
+      <label>기본 대화 프로필<small>새 대화를 시작할 때 내가 연기할 인물</small></label>
+      <select value={d.personaId || ''} onChange={e => { d.personaId = e.target.value || undefined; bump(); }}>
+        <option value="">첫 번째 프로필({S.personas[0]?.name || '나'})</option>
+        {S.personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+      <div className="fl" style={{marginTop:18}}><span>유저 사칭 방지 기본값<small style={{display:'block', fontWeight:400, marginTop:2}}>끄면 모델이 내 대사를 받아 적고 내 표정, 속마음도 묘사해요</small></span><button className={'toggle ' + (d.noImpersonate !== false ? 'on' : '')} aria-label="유저 사칭 방지 기본값" onClick={() => { d.noImpersonate = d.noImpersonate === false; bump(); }}/></div>
       <div className="fl" style={{marginTop:18}}><span>19금 스토리<small style={{display:'block', fontWeight:400, marginTop:2}}>목록과 대화방에 19 뱃지가 붙어요</small></span><button className={'toggle ' + (d.adult ? 'on' : '')} aria-label="19금 스토리" onClick={() => { d.adult = !d.adult; bump(); }}/></div>
       {f('greeting', '첫 메시지', '대화를 시작하는 장면. {{user}} 쓰면 내 이름이 들어가요.', 5)}
       {f('guide', '플레이 가이드', '플레이 방법이나 추천 진행 방향', 3)}
