@@ -24,12 +24,13 @@ export async function generate(c){
     // 모델이 붙인 수위 표시 [[19]] 는 본문에서 떼고 메시지 표시로 옮긴다
     if (ADULT_RE.test(m.text)){ m.adult = true; m.text = m.text.replace(ADULT_RE, '').trimEnd(); }
     if (r.stop === 'refusal' && !r.text) m.text = '(모델이 이 장면을 이어 쓰지 않았어요. 다시 생성하거나 방향을 바꿔보세요.)';
-    if (!m.text) c.messages.pop();
+    if (!m.text){ c.messages.pop(); if (r.stop !== 'aborted') toast('답변이 비어서 왔어요. 다시 불러오기를 눌러주세요.'); }
     track(r.usage, c.model, c, m);
     run.busy = false; save();
     maybeSummarize(c).catch(e => toast('요약 실패 : ' + e.message));
   } catch(e){
-    if (c.messages[c.messages.length-1] === m) c.messages.pop();
+    // 중간에 끊기면 받은 데까지는 남긴다, 아무것도 못 받았으면 내 메시지만 남아 다시 불러오기로 이어 간다
+    if (c.messages[c.messages.length-1] === m){ if (run.text.trim()) m.text = run.text; else c.messages.pop(); }
     toast(e.message);
   } finally { run.busy = false; run.abort = null; run.text = ''; commit(); }
 }
@@ -45,9 +46,25 @@ export function send(c, text){
   return true;
 }
 
+// 내 말 없이 이야기를 이어 쓴다, 화면에는 작은 표시만 남는다
+const CONT_PROMPT = '(사용자는 이번에 아무 말도 하지 않았다. 직전 장면에서 자연스럽게 이어서 이야기를 다음으로 진행해라. 사용자 캐릭터의 대사나 행동은 새로 정하지 않는다.)';
+export function cont(c){
+  if (run.busy || !c?.messages.length) return false;
+  if (c.messages[c.messages.length-1].role === 'user'){ regen(c); return true; }
+  if (usingProxy && (S.wallet?.balance || 0) <= 0){ toast('크레딧이 부족해요. 충전 후 이어서 해주세요.'); go('charge'); return false; }
+  c.messages.push({role:'user', text:'', send:CONT_PROMPT, cont:true});
+  generate(c);
+  return true;
+}
+
+// 마지막이 답변이면 지우고 새로, 내 메시지에서 끊겼으면(답변 실패) 그 자리에서 다시 불러온다
 export function regen(c){
-  if (run.busy || c.messages[c.messages.length-1]?.role !== 'assistant' || c.messages.length < 2) return;
-  c.messages.pop(); c.summarizedUpTo = Math.min(c.summarizedUpTo, c.messages.length);
+  const last = c.messages[c.messages.length-1];
+  if (run.busy || !last) return;
+  if (last.role === 'assistant'){
+    if (c.messages.length < 2) return;
+    c.messages.pop(); c.summarizedUpTo = Math.min(c.summarizedUpTo || 0, c.messages.length);
+  }
   generate(c);
 }
 

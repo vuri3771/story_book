@@ -13,8 +13,14 @@
 
 @media (max-width:899px){
   input,textarea,select{font-size:16px}
-  /* iOS 는 16px 미만 입력칸에 초점이 가면 화면을 확대해서 입력창은 16px 아래로 내리지 않는다 */
-  .composer textarea{font-size:max(16px, calc(15.5px * var(--fz,1)))}
+  /* 입력창도 설정한 글자 크기를 따른다(초점 때 iOS 확대는 viewport maximum-scale=1 로 막음) */
+  .composer textarea{font-size:calc(15.5px * var(--fz,1))}
+  .composer{padding:9px 12px 8px}
+  .tools{gap:6px;margin-top:4px}
+  .circ{width:32px;height:32px;border-width:1.2px}
+  .circ svg{width:16px;height:16px}
+  .send{width:36px;height:36px}
+  .send svg{width:17px;height:17px}
 }
 @media (min-width:900px){
   .shell{flex-direction:row}
@@ -192,6 +198,70 @@
 .openings button span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:var(--narr);margin-top:3px;line-height:1.5}
 .openings .rand{background:none;border:1.5px dashed var(--line);text-align:center;color:var(--accent)}
 .alt-open{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:12px}
+/* 입력 없이 이어 쓰기 */
+#log .m.cont{display:flex;flex-direction:column;align-items:center;border:0;padding:0;margin-bottom:16px}
+.cont-mark{font-size:12px;color:var(--muted);padding:2px 10px;border:1px dashed var(--line);border-radius:999px}
+.pull-hint{text-align:center;font-size:12.5px;color:var(--muted);padding:10px 0 4px}
+.hint-sm{font-size:12px;color:var(--muted);margin-top:6px}
 /* 맨 아래로 버튼 */
 .jump{position:absolute;right:16px;top:-52px;width:42px;height:42px;border-radius:50%;background:var(--bg);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.12);display:grid;place-items:center;color:var(--narr);z-index:5}
 .jump svg{width:20px;height:20px;transform:rotate(90deg)}
+
+/* ===== 모바일 : 여백, 줄 간격을 화면 크기에 맞게 줄인다 ===== */
+@media (max-width:899px){
+  .hdr{padding:8px 12px;min-height:50px;gap:6px}
+  .hdr .t{font-size:17px}
+  .icon-btn{width:34px;height:34px}
+  .icon-btn svg{width:21px;height:21px}
+  .tabbar button{padding:6px 0 5px;gap:2px;font-size:10.5px}
+  .tabbar button svg{width:22px;height:22px}
+  .sec{padding:14px 14px 4px}
+  .grid{gap:10px;padding:4px 14px 18px}
+  .scard .nm{padding:8px 10px 1px;font-size:14px}
+  .scard .ds{margin:0 10px 10px;font-size:12px}
+  .row{padding:10px 14px;gap:10px}
+  .row .th{width:42px;height:42px}
+  .banner{margin:10px 14px 0;padding:11px 14px}
+  .hero .ov{padding:32px 14px 12px}
+  .hero .ov h1{font-size:21px}
+  .btns{padding:6px 14px 2px}
+  .btn{padding:12px}
+  #log{padding:12px 14px 6px}
+  .m{margin-bottom:16px;line-height:1.65}
+  .m p{margin:0 0 8px}
+  .m.user{padding:10px 0 2px}
+  .info{margin:2px 0 12px}
+  .info .ih{padding:8px 14px}
+  .info .ib{padding:10px 14px 12px;line-height:1.6}
+  .cblock{padding:12px 14px;line-height:1.65;margin:2px 0 10px}
+  .scene{margin:4px -14px 12px}
+  .acts{gap:12px}
+  .dock{padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px))}
+  .pop{margin-bottom:8px}
+  .sug{padding:4px 8px}
+  .sug .body{padding:10px 14px;line-height:1.55}
+  .tabs{gap:18px;padding:10px 16px 0}
+  .tabs button{padding:4px 2px 9px;font-size:14px}
+  .sci{padding:10px 16px}
+  .addsc{padding:11px 16px}
+  .prof{padding:14px 16px;gap:12px}
+  .prof img{width:64px;height:64px}
+  .mh{padding:12px 16px 4px;font-size:17px}
+  .ml{padding:16px 16px 6px;font-size:13px}
+  .mi{padding:12px 16px;gap:12px;font-size:15.5px}
+  .mi svg{width:21px;height:21px}
+  .sheet .grab{margin:2px auto 8px}
+  .sheet h3{font-size:17px;padding:2px 18px 6px}
+  .sheet .note{padding:0 18px 6px}
+  .sheet .sb{padding:10px 18px 0}
+  .form{padding:0 18px}
+  .form label,.fl{margin-top:10px;font-size:14.5px}
+  .opt{padding:11px 18px;gap:10px}
+  .opt .mid b{font-size:16px}
+  .opt .mid .d{font-size:13px;margin-top:2px}
+  input,textarea,select{padding:10px 12px}
+  textarea{line-height:1.5}
+  .edit{padding:2px 14px 18px}
+  .page-foot{padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px))}
+  .seg button{padding:8px 6px}
+}

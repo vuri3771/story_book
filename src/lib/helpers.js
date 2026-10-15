@@ -4,6 +4,13 @@ import { ask } from '../sheets';
 
 export const escT = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 export const chatById = id => S.chats.find(c => c.id === id);
+// 스토리와 그 대화를 함께 지운다, 다른 기기에는 다음 동기화 때 지워진다
+export function deleteStory(id, after){
+  ask('이 스토리와 대화를 모두 삭제할까요?', '삭제', () => {
+    S.stories = S.stories.filter(s => s.id !== id); S.chats = S.chats.filter(c => c.storyId !== id);
+    commit(); toast('스토리를 삭제했어요.'); after?.();
+  });
+}
 export const storyOf = c => S.stories.find(s => s.id === (c?.storyId ?? c));
 export const personaOf = c => S.personas.find(p => p.id === c?.personaId) || S.personas[0];
 export const modelOf = id => MODELS.find(m => m.id === id) || MODELS[1];

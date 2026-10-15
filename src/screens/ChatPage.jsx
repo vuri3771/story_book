@@ -3,7 +3,7 @@ import { useStore, ui, go, back, goHome, commit, openSheet, closeSheet, openDraw
 import { EXPECTED_CHARS, uid } from '../lib/constants';
 import { chatById, storyOf, modelOf, fill, won } from '../lib/helpers';
 import { allShortcuts } from '../lib/prompt';
-import { run, send, regen, suggest, isAdultChat } from '../lib/engine';
+import { run, send, regen, cont, suggest, isAdultChat } from '../lib/engine';
 import { renderAI, renderUser, Inline, pickScene, Badge19 } from '../render';
 import { ask, Sheet, ModelSheet, EditMsgSheet } from '../sheets';
 import ChatMenu from './MenuPage';
@@ -49,6 +49,9 @@ export default function ChatPage({id}){
   const [far, setFar] = useState(false);
   const [menu, setMenu] = useState(null);
   const press = useRef({t:0, x:0, y:0, fired:0});
+  // 맨 아래에서 더 끌어올리면(휠은 더 굴리면) 내 말 없이 이야기를 이어 간다
+  const [pull, setPull] = useState(0);
+  const pullRef = useRef({y:-1, wheel:0, wt:0});
 
   // 입력창 높이 자동 조절
   useLayoutEffect(() => { const t = inpRef.current; if (!t) return; t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; }, [text]);
@@ -84,6 +87,8 @@ export default function ChatPage({id}){
   const pct = busy ? progressOf(c) : 0;
 
   const closePop = () => { setPop(null); setSug(null); };
+  const atBottom = () => { const sc = scRef.current; return !!sc && c.messages.length > 0 && sc.scrollHeight - sc.scrollTop - sc.clientHeight < 6; };
+  const goOn = () => { if (cont(c)) closePop(); };
   const doSend = t => { if (send(c, t)){ setText(''); closePop(); } };
   const onInput = v => {
     setText(v);
@@ -109,7 +114,8 @@ export default function ChatPage({id}){
     const streaming = busy && m.role === 'assistant' && i === c.messages.length - 1;
     const t = streaming ? run.text : m.text;
     let body;
-    if (m.role !== 'assistant') body = renderUser(m.text);
+    if (m.cont) body = <div className="cont-mark">▶ 이야기 이어서</div>;
+    else if (m.role !== 'assistant') body = renderUser(m.text);
     else if (!t) body = <div className="gen-card"><div className="gl"><span>장면을 구상하는 중…</span><span>{Math.round(pct)}%</span></div><div className="gauge"><i style={{width: pct + '%'}}/></div></div>;
     else {
       // 스트리밍 중엔 이미지가 바뀌며 깜빡이지 않게 다 쓴 뒤에 고른다
@@ -126,6 +132,12 @@ export default function ChatPage({id}){
         <button onClick={edit}>수정</button>
         {i > 0 && <button onClick={delFrom}>삭제</button>}
         {m.cost > 0 && <span>≈ {won(m.cost)}원{m.cache ? ` · 캐시 ${m.cache}%` : ''}</span>}
+      </div>;
+    } else if (m.role === 'user' && i === c.messages.length - 1 && !busy){
+      acts = <div className="acts">
+        <button onClick={() => regen(c)}>↻ 답변 다시 불러오기</button>
+        {!m.cont && <button onClick={edit}>수정</button>}
+        <button onClick={delFrom}>삭제</button>
       </div>;
     } else if (!streaming){
       acts = <div className="acts" hidden={!openActs.has(i)}><button onClick={edit}>수정</button>{m.role === 'user' && <button onClick={delFrom}>삭제</button>}</div>;
@@ -161,7 +173,7 @@ export default function ChatPage({id}){
       const prevAdult = c.messages.slice(0, i).reverse().find(x => x.role === 'assistant')?.adult;
       mark = prevAdult ? <div className="adult-mark"><Badge19/></div> : <div className="adult-mark start"><Badge19/><span>여기부터 19금 장면</span></div>;
     }
-    return <div key={i} data-i={i} className={'m ' + m.role} onClick={toggle} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={ctx}>{mark}{body}{acts}</div>;
+    return <div key={i} data-i={i} className={'m ' + m.role + (m.cont ? ' cont' : '')} onClick={toggle} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={ctx}>{mark}{body}{acts}</div>;
   });
 
   const scList = pop === 'sc' ? allShortcuts(c).filter(s => (ui.scTab === 'all' || s.owner === ui.scTab) && (!scQuery || s.name.includes(scQuery))) : [];
@@ -174,7 +186,17 @@ export default function ChatPage({id}){
       <button className="icon-btn" aria-label="메뉴" onClick={() => openDrawer(<ChatMenu id={c.id}/>)}><Icon n="menu"/></button>
       {busy && <div className="gauge" role="progressbar" aria-label="답변 생성 중" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i style={{width: pct + '%'}}/></div>}
     </div>
-    <div className="scroll" ref={scRef} onScroll={e => { const sc = e.currentTarget; setFar(sc.scrollHeight - sc.scrollTop - sc.clientHeight - (spRef.current?.offsetHeight || 0) > 300); }}><div id="log">{log}<div ref={spRef} aria-hidden="true"/></div></div>
+    <div className="scroll" ref={scRef} onScroll={e => { const sc = e.currentTarget; setFar(sc.scrollHeight - sc.scrollTop - sc.clientHeight - (spRef.current?.offsetHeight || 0) > 300); }}
+      onWheel={e => {
+        const p = pullRef.current; clearTimeout(p.wt);
+        if (e.deltaY <= 0 || busy || !atBottom()){ p.wheel = 0; setPull(0); return; }
+        p.wheel += e.deltaY; setPull(p.wheel > 350 ? 2 : 1);
+        if (p.wheel > 350){ p.wheel = 0; setPull(0); goOn(); } else p.wt = setTimeout(() => { p.wheel = 0; setPull(0); }, 500);
+      }}
+      onTouchStart={e => { pullRef.current.y = !busy && atBottom() ? e.touches[0].clientY : -1; }}
+      onTouchMove={e => { const p = pullRef.current; if (p.y < 0) return; const d = p.y - e.touches[0].clientY; setPull(d > 90 ? 2 : d > 20 ? 1 : 0); }}
+      onTouchEnd={() => { if (pull === 2) goOn(); pullRef.current.y = -1; setPull(0); }}>
+      <div id="log">{log}{pull > 0 && <div className="pull-hint">{pull === 2 ? '놓으면 이야기가 이어져요' : '더 올리면 이야기가 이어져요'}</div>}<div ref={spRef} aria-hidden="true"/></div></div>
     {menu && <MsgMenu at={menu} items={menu.items} onClose={() => setMenu(null)}/>}
     <div className="dock">
       {far && <button className="jump" aria-label="맨 아래로" onClick={() => { const sc = scRef.current; sc.scrollTo({top:sc.scrollHeight - (spRef.current?.offsetHeight || 0) - sc.clientHeight + 40, behavior:'smooth'}); }}><Icon n="chev"/></button>}
@@ -201,7 +223,7 @@ export default function ChatPage({id}){
           <button className={'circ ' + (pop === 'sc' ? 'on' : '')} aria-label="단축어" onClick={() => { if (pop === 'sc') closePop(); else { setScQuery(''); setPop('sc'); } }}><Icon n="slash"/></button>
           <button className="circ zap" aria-label="모델 선택" style={{color:md.color}} onClick={() => openSheet(<ModelSheet chat={c}/>)}><Icon n={md.icon}/></button>
           <span className="grow"/>
-          <button className={'send ' + (!busy && text.trim() ? 'ready' : '')} aria-label={busy ? '중지' : '전송'} onClick={() => busy ? run.abort?.abort() : doSend(text)}>
+          <button className={'send ' + (!busy && text.trim() ? 'ready' : '')} aria-label={busy ? '중지' : text.trim() ? '전송' : '이야기 이어서'} onClick={() => busy ? run.abort?.abort() : text.trim() ? doSend(text) : goOn()}>
             <Icon n={busy ? 'stop' : text.trim() ? 'arrow' : 'play'}/>
           </button>
         </div>

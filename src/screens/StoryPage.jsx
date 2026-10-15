@@ -1,8 +1,8 @@
-import { useStore, go, back, replace, commit, openSheet, closeSheet } from '../lib/store';
+import { useStore, go, back, replace, commit, openSheet, closeSheet, goHome } from '../lib/store';
 import { CharacterSheet, CharPh, Sheet } from '../sheets';
 import { Badge19, Ava } from '../render';
 import { uid } from '../lib/constants';
-import { storyOf, personaOf, coverOf, plain, ago } from '../lib/helpers';
+import { storyOf, personaOf, coverOf, plain, ago, deleteStory } from '../lib/helpers';
 import { Icon } from '../icons';
 
 function newChat(S, storyId, opening){
@@ -59,6 +59,7 @@ export default function StoryPage({id}){
       {chats.length > 0 && <div className="sec">진행 중인 대화</div>}
       {chats.map(c => <button key={c.id} className="row" onClick={() => go('chat', {id:c.id})}><div className="mid"><b>{personaOf(c)?.name || '나'}의 이야기 · {c.messages.filter(m => m.role === 'assistant').length}턴</b><span>{plain(c.messages[c.messages.length-1]?.text || '').slice(0, 60)}</span></div><small>{ago(c.updated)}</small></button>)}
       {st.guide && <><div className="sec">플레이 가이드</div><div style={{padding:'0 16px 24px', whiteSpace:'pre-wrap', lineHeight:1.7, color:'var(--narr)'}}>{st.guide}</div></>}
+      <div style={{padding:'8px 16px 32px'}}><button className="linkbtn danger" onClick={() => deleteStory(id, goHome)}>스토리 삭제</button></div>
     </div>
   </>;
 }

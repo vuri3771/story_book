@@ -101,9 +101,7 @@ export default function StoryEditor({id}){
         <input placeholder={tagging.has(im.id) ? '키워드 만드는 중…' : '예: 비, 헌책방, 밤'} {...bind(`images.${i}.tag`)}/>
         <button onClick={() => { d.images.splice(i, 1); bump(); }}>삭제</button></div>)}</div>
       {d.images.length < 50 && <button className="linkbtn" onClick={() => addImages('vault')}>+ 이미지 추가</button>}
-      {!isNew && <button className="linkbtn danger" style={{marginTop:20}} onClick={() => ask('이 스토리와 대화를 모두 삭제할까요?', '삭제', () => {
-        S.stories = S.stories.filter(s => s.id !== d.id); S.chats = S.chats.filter(c => c.storyId !== d.id); commit(); goHome();
-      })}>스토리 삭제</button>}
+      {!isNew && <button className="linkbtn danger" style={{marginTop:20}} onClick={() => deleteStory(d.id, goHome)}>스토리 삭제</button>}
     </div></div>
     <div className="page-foot"><button className="btn dark" style={{width:'100%'}} onClick={saveStory}>저장</button></div>
   </>;
