@@ -8,7 +8,7 @@ import { maybeSummarize } from './lib/engine';
 import { remoteOn, token, switchAccount, syncStatus } from './lib/remote';
 import { Icon } from './icons';
 import { Ava } from './render';
-import { FONTS, look, setLook, loadFont, SIZE_MIN, SIZE_MAX } from './lib/look';
+import { FONTS, look, setLook, loadFont, SIZE_MIN, SIZE_MAX, KNOBS, DEFAULT_LOOK } from './lib/look';
 
 export function Sheet({children, ok, danger, onOk}){
   useStore();
@@ -39,14 +39,24 @@ export function Drawer({children}){
 export function ask(msg, okLabel, fn){ openSheet(<Sheet ok={okLabel} danger onOk={fn}><h3>{msg}</h3></Sheet>); }
 
 // ----- 설정 : 시트와 설정 탭이 같은 폼을 쓴다 -----
-// ----- 글꼴과 대화 글자 크기 : 누르는 즉시 바뀌고 이 기기에만 저장된다 -----
+// ----- 글꼴과 대화 글자 모양 : 누르는 즉시 바뀌고 PC 와 휴대폰에 똑같이 맞춰진다 -----
 export function TextLook(){
   const [, redraw] = useState(0);
   // 고를 때 각 글꼴 모양을 바로 보여주려고 목록을 열면 전부 불러온다
   useState(() => FONTS.forEach(loadFont));
-  const set = patch => { setLook(patch); redraw(n => n + 1); };
+  const set = patch => { setLook(patch); S.settings.look = {...look}; commit(); redraw(n => n + 1); };
+  const knob = (k, label, fmt) => { const o = KNOBS[k]; return <>
+    <label>{label}</label>
+    <div className="look-size">
+      <button aria-label={label + ' 줄이기'} onClick={() => set({[k]:look[k] - o.step})}>−</button>
+      <input type="range" min={o.min} max={o.max} step={o.step} value={look[k]} aria-label={label} onChange={e => set({[k]:+e.target.value})}/>
+      <button aria-label={label + ' 늘리기'} onClick={() => set({[k]:look[k] + o.step})}>+</button>
+      <b>{fmt(look[k])}</b>
+    </div>
+  </>; };
+  const changed = Object.keys(DEFAULT_LOOK).some(k => k !== 'font' && look[k] !== DEFAULT_LOOK[k]);
   return <>
-    <label>글꼴<small>이 기기에만 적용돼요</small></label>
+    <label>글꼴<small>PC와 휴대폰에 똑같이 적용돼요</small></label>
     <div className="look-fonts">
       {FONTS.map(f => <button key={f.id} className={look.font === f.id ? 'on' : ''} style={{fontFamily:f.family}} aria-pressed={look.font === f.id} onClick={() => set({font:f.id})}>{f.name}<small>가나다 Aa 123</small></button>)}
     </div>
@@ -57,11 +67,14 @@ export function TextLook(){
       <button aria-label="글자 크게" style={{fontSize:19}} onClick={() => set({size:look.size + .05})}>가</button>
       <b>{Math.round(look.size * 100)}%</b>
     </div>
-    <div className="look-prev"><i>창밖으로 비가 그치고 있었다.</i> "이제 가 볼까?" 그가 우산을 접으며 웃었다.</div>
-    {look.size !== 1 && <button className="linkbtn" onClick={() => set({size:1})}>기본 크기로</button>}
+    {knob('ls', '자간', v => (v > 0 ? '+' : '') + Math.round(v * 100))}
+    {knob('lh', '줄 간격', v => Math.round(v * 100) + '%')}
+    {knob('pg', '문단 간격', v => Math.round(v * 100) + '%')}
+    <div className="look-prev"><p><i>창밖으로 비가 그치고 있었다.</i> "이제 가 볼까?" 그가 우산을 접으며 웃었다.</p><p><i>대답 대신 고개를 끄덕였다.</i> 젖은 길 위로 가로등이 하나둘 켜졌다.</p></div>
+    {changed && <button className="linkbtn" onClick={() => set({size:1, ls:0, lh:1, pg:1})}>기본값으로</button>}
   </>;
 }
-export function LookSheet(){ return <Sheet><h3>글꼴, 글자 크기</h3><div className="form"><TextLook/></div><div className="sb"><button className="btn dark" onClick={closeSheet}>닫기</button></div></Sheet>; }
+export function LookSheet(){ return <Sheet><h3>글꼴, 글자 모양</h3><div className="form"><TextLook/></div><div className="sb"><button className="btn dark" onClick={closeSheet}>닫기</button></div></Sheet>; }
 
 export function openSettings(){ openSheet(<Sheet><h3>설정</h3><SettingsForm inSheet/></Sheet>); }
 export function SettingsForm({inSheet}){

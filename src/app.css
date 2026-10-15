@@ -152,7 +152,9 @@
 .look-size button{width:40px;height:40px;border-radius:10px;background:var(--surface);flex-shrink:0;font-weight:700}
 .look-size input[type=range]{flex:1;padding:0;border:0;background:none;accent-color:var(--accent);min-width:0}
 .look-size b{width:46px;text-align:right;font-variant-numeric:tabular-nums;font-size:14px}
-.look-prev{margin-top:12px;padding:14px 16px;border-radius:12px;background:var(--surface);line-height:1.75;font-size:calc(15.5px * var(--fz,1));word-break:keep-all}
+.look-prev{margin-top:12px;padding:14px 16px;border-radius:12px;background:var(--surface);line-height:calc(1.75 * var(--lh,1));letter-spacing:var(--ls,0);font-size:calc(15.5px * var(--fz,1));word-break:keep-all}
+.look-prev p{margin:0 0 calc(12px * var(--pg,1))}
+.look-prev p:last-child{margin:0}
 .look-prev i{font-style:normal;color:var(--narr)}
 
 /* AI 추천 스토리 */
@@ -235,8 +237,8 @@
   .btns{padding:6px 14px 2px}
   .btn{padding:12px}
   #log{padding:12px 14px 6px}
-  .m{margin-bottom:16px;line-height:1.65}
-  .m p{margin:0 0 8px}
+  .m{margin-bottom:calc(16px * var(--pg,1));line-height:calc(1.65 * var(--lh,1))}
+  .m p{margin:0 0 calc(8px * var(--pg,1))}
   .m.user{padding:10px 0 2px}
   .info{margin:2px 0 12px}
   .info .ih{padding:8px 14px}

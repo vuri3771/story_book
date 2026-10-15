@@ -1,4 +1,4 @@
-// 글꼴과 대화 글자 크기 : 휴대폰과 PC 가 다르게 쓰고 싶을 수 있어 서버 동기화 없이 이 기기에만 저장한다
+// 글꼴, 글자 크기, 자간, 줄 간격, 문단 간격 : 첫 화면이 바로 그려지게 이 기기에도 두고, settings.look 으로 서버 동기화한다
 const KEY = 'storychat_look';
 const G = 'https://fonts.googleapis.com/css2?display=swap&family=';
 
@@ -12,9 +12,16 @@ export const FONTS = [
   {id:'system', name:'기기 기본', family:'system-ui'},
 ];
 export const SIZE_MIN = 0.8, SIZE_MAX = 1.5;
+// 조절 항목 : 범위와 기본값. ls 는 em, lh 와 pg 는 기본값 대비 배수
+export const KNOBS = {
+  ls:{min:-0.05, max:0.1, step:0.01, def:0},
+  lh:{min:0.8, max:1.3, step:0.05, def:1},
+  pg:{min:0, max:2.5, step:0.25, def:1},
+};
 const FALLBACK = '"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
 
-export const look = {font:'noto', size:1};
+export const DEFAULT_LOOK = {font:'noto', size:1, ls:0, lh:1, pg:1};
+export const look = {...DEFAULT_LOOK};
 try { Object.assign(look, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(e){}
 
 const loaded = new Set();
@@ -32,11 +39,22 @@ export function applyLook(){
   const r = document.documentElement.style;
   r.setProperty('--font', `${f.family},${FALLBACK}`);
   r.setProperty('--fz', String(look.size));
+  r.setProperty('--ls', look.ls + 'em');
+  r.setProperty('--lh', String(look.lh));
+  r.setProperty('--pg', String(look.pg));
 }
 
+const clamp = (v, min, max, step, def) => { v = +v; if (!isFinite(v)) return def; return Math.min(max, Math.max(min, Math.round(v / step) * step)); };
 export function setLook(patch){
   Object.assign(look, patch);
-  look.size = Math.min(SIZE_MAX, Math.max(SIZE_MIN, Math.round(look.size * 20) / 20));
+  look.size = clamp(look.size, SIZE_MIN, SIZE_MAX, .05, 1);
+  for (const [k, o] of Object.entries(KNOBS)) look[k] = +clamp(look[k], o.min, o.max, o.step, o.def).toFixed(3);
   try { localStorage.setItem(KEY, JSON.stringify(look)); } catch(e){}
   applyLook();
+}
+// 다른 기기에서 받은 값(settings.look)을 이 기기에 적용한다
+export function adoptLook(v){
+  if (!v || typeof v !== 'object') return;
+  if (Object.keys(DEFAULT_LOOK).every(k => (v[k] ?? DEFAULT_LOOK[k]) === look[k])) return;
+  setLook({...DEFAULT_LOOK, ...v});
 }

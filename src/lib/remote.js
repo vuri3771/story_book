@@ -4,6 +4,7 @@
 import { S, setState, notify, save, toast } from './store';
 import { defaultState } from './constants';
 import { run } from './engine';
+import { adoptLook } from './look';
 
 const API = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 export const remoteOn = !!API;
@@ -140,6 +141,7 @@ export async function pullState(){
   if (meta.shortcuts) next.shortcuts = meta.shortcuts;
   if (meta.usage) next.usage = meta.usage;
   next.spend = S.spend;
+  adoptLook(next.settings.look);
   const stories = [...map].filter(([k]) => /^story#[^#]+$/.test(k)).map(([, d]) => JSON.parse(d));
   // 이미지 받아서 자리 채우기
   const need = new Set();
@@ -228,6 +230,7 @@ export async function mergeRemote(){
         if (meta.personas?.length) S.personas = meta.personas;
         if (meta.shortcuts) S.shortcuts = meta.shortcuts;
         if (meta.usage) S.usage = meta.usage;
+        adoptLook(S.settings.look);
       } else {
         const id = gk.split('#')[1], list = gk.startsWith('story#') ? 'stories' : 'chats';
         const i = S[list].findIndex(x => x.id === id);

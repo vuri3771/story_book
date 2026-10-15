@@ -78,8 +78,8 @@ body{overflow:hidden}
 
 /* 대화 */
 #log{padding:18px 18px 8px}
-.m{margin-bottom:22px;line-height:1.75;font-size:calc(15.5px * var(--fz,1));word-break:keep-all;overflow-wrap:anywhere}
-.m p{margin:0 0 12px}
+.m{margin-bottom:calc(22px * var(--pg,1));line-height:calc(1.75 * var(--lh,1));letter-spacing:var(--ls,0);font-size:calc(15.5px * var(--fz,1));word-break:keep-all;overflow-wrap:anywhere}
+.m p{margin:0 0 calc(12px * var(--pg,1))}
 .m .narr{color:var(--narr)}
 .m .dlg{color:var(--text)}
 .m .dlg .who{font-weight:500}
