@@ -111,7 +111,8 @@ export default function ChatPage({id}){
   return <>
     <div className="hdr">
       <button className="icon-btn" aria-label="뒤로" onClick={() => { if (busy) run.abort?.abort(); back(); }}><Icon n="back"/></button>
-      <div className="t">{st.title}{isAdultChat(c, st) && <Badge19 className="inline"/>}</div>
+      {/* 제목을 누르면 스토리 화면으로, 스토리에서 들어왔으면 그 화면으로 되돌아간다 */}
+      <button className="t t-link" title="스토리 보기" onClick={() => { const prev = ui.nav[ui.nav.length-2]; if (prev?.name === 'story' && prev.props?.id === st.id) back(); else go('story', {id:st.id}); }}>{st.title}{isAdultChat(c, st) && <Badge19 className="inline"/>}</button>
       <button className="icon-btn" aria-label="메뉴" onClick={() => openDrawer(<ChatMenu id={c.id}/>)}><Icon n="menu"/></button>
       {busy && <div className="gauge" role="progressbar" aria-label="답변 생성 중" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i style={{width: pct + '%'}}/></div>}
     </div>

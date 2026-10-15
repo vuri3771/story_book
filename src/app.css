@@ -165,3 +165,7 @@
 .gen-bar i{display:block;height:100%;width:35%;background:var(--accent);border-radius:4px;animation:genbar 1.2s ease-in-out infinite}
 @keyframes genbar{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
 @media (prefers-reduced-motion: reduce){.gen-bar i{animation:none;width:100%;opacity:.5}}
+
+/* 대화 화면 제목 : 눌러서 스토리로 */
+.hdr .t-link{text-align:left;min-width:0}
+.hdr .t-link:hover{opacity:.7}
