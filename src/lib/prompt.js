@@ -22,6 +22,7 @@ export function buildSystem(c){
   if (st.commonRules?.trim()) t += '\n\n[등장인물 공통 대화 규칙 · 모든 인물의 대사와 행동에 항상 적용]\n' + st.commonRules.trim();
   t += '\n\n[수위 표시]\n이번 응답에 성인 수위(노골적인 성적 묘사나 잔혹한 폭력 묘사)가 들어가면 응답의 맨 마지막 줄에 [[19]] 만 단독으로 쓴다. 그렇지 않으면 쓰지 않는다.';
   t += '\n\n[{{user}}의 대화 프로필: ' + (p?.name || '나') + ']\n' + (p?.desc || '');
+  if (c.setup?.trim()) t += '\n\n[이 대화의 시작 시나리오' + (c.openingTitle ? ': ' + c.openingTitle : '') + ' · 프로필이나 세계관과 어긋나면 이 설정을 따른다]\n' + c.setup.trim();
   const tags = [...(st.images||[]).filter(i => i.tag).map(i => i.tag), ...st.characters.filter(x => x.image && x.name).map(x => x.name)];
   if (tags.length) t += '\n\n[이미지]\n장면에 딱 맞을 때만 가끔 한 줄에 [[이미지:이름]] 을 넣으면 그 이미지가 보인다. 쓸 수 있는 이름: ' + tags.join(', ');
   if (st.memory) t += '\n\n[장기 기억 · 항상 지킬 사실]\n' + st.memory;

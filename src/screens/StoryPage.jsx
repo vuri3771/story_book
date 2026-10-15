@@ -1,4 +1,6 @@
-import { useStore, go, back, replace, commit, openSheet, closeSheet, goHome } from '../lib/store';
+import { useState } from 'react';
+import { useStore, go, back, replace, commit, openSheet, closeSheet, goHome, toast } from '../lib/store';
+import { genOpenings } from '../lib/recommend';
 import { CharacterSheet, CharPh, Sheet } from '../sheets';
 import { Badge19, Ava } from '../render';
 import { uid } from '../lib/constants';
@@ -11,22 +13,23 @@ function newChat(S, storyId, opening){
   const personaId = S.personas.some(p => p.id === st.personaId) ? st.personaId : S.personas[0]?.id;
   const c = {id:uid(), storyId, personaId, messages:[], memory:'', notes:'', summarizedUpTo:0, cost:0,
     model:s.model, effort:s.effort, length:s.length, style:'novel', customStyle:'', noImpersonate:st.noImpersonate !== false, updated:Date.now()};
-  const g = opening ?? st.greeting;
-  if (g) c.messages.push({role:'assistant', text:g});
+  const o = opening || openingsOf(st)[0];
+  if (o.text) c.messages.push({role:'assistant', text:o.text});
+  if (o.setup?.trim()){ c.setup = o.setup; c.openingTitle = o.title; }
   S.chats.push(c); commit(); return c;
 }
 
 // 시작 장면이 여러 개인 스토리는 새 대화 때 고른다
-export const openingsOf = st => [{title:st.greetingTitle || '기본 시작', text:st.greeting || ''}, ...(st.altGreetings || []).filter(g => g.text?.trim())];
-const preview = t => String(t).replace(/```[\s\S]*?```/g, '').replace(/[*"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 90);
+export const openingsOf = st => [{title:st.greetingTitle || '기본 시작', text:st.greeting || '', setup:st.greetingSetup || ''}, ...(st.altGreetings || []).filter(g => g.text?.trim())];
+const preview = t => String(t).replace(/```[\s\S]*?```/g, '').replace(/^\s*-\s*/gm, '').replace(/\{\{?user\}\}?/g, '나').replace(/[*"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 90);
 
 function OpeningSheet({st, onPick}){
   const list = openingsOf(st);
-  const pick = t => { closeSheet(); onPick(t); };
-  return <Sheet><h3>시작 장면 고르기</h3>
+  const pick = g => { closeSheet(); onPick(g); };
+  return <Sheet><h3>시작 시나리오 고르기</h3>
     <div className="openings">
-      {list.map((g, i) => <button key={i} onClick={() => pick(g.text)}><b>{g.title || `시작 ${i + 1}`}</b><span>{preview(g.text) || '빈 장면으로 시작'}</span></button>)}
-      <button className="rand" onClick={() => pick(list[Math.floor(Math.random() * list.length)].text)}><b>무작위로 시작</b></button>
+      {list.map((g, i) => <button key={i} onClick={() => pick(g)}><b>{g.title || `시작 ${i + 1}`}</b><span>{preview(g.setup || g.text) || '빈 장면으로 시작'}</span></button>)}
+      <button className="rand" onClick={() => pick(list[Math.floor(Math.random() * list.length)])}><b>무작위로 시작</b></button>
     </div>
     <div className="sb"><button className="btn" onClick={closeSheet}>취소</button></div>
   </Sheet>;
@@ -34,18 +37,30 @@ function OpeningSheet({st, onPick}){
 
 export default function StoryPage({id}){
   const S = useStore();
+  const [making, setMaking] = useState(false);
   const st = storyOf(id);
   if (!st){ queueMicrotask(back); return null; }
   const chats = S.chats.filter(c => c.storyId === id).sort((a,b) => (b.updated||0) - (a.updated||0));
   const cast = st.characters.filter(x => x.name);
+  const opens = openingsOf(st);
+  const start = g => { const c = newChat(S, id, g); replace('chat', {id:c.id}); };
+  const make = async () => {
+    if (making) return; setMaking(true);
+    try { const l = await genOpenings(st, 3); toast(`시작 시나리오 ${l.length}개를 만들었어요. 편집에서 고칠 수 있어요.`); }
+    catch(e){ toast(e.message); } finally { setMaking(false); }
+  };
   return <>
     <div className="hdr"><button className="icon-btn" aria-label="뒤로" onClick={back}><Icon n="back"/></button><div className="t">{st.title}</div><button className="icon-btn" aria-label="편집" onClick={() => go('editor', {id})}><Icon n="pen"/></button></div>
     <div className="scroll">
       <div className="hero"><img src={coverOf(st)} alt=""/><div className="ov"><h1>{st.title || '제목 없음'}{st.adult && <Badge19 className="inline"/>}</h1><p>{st.intro}</p></div></div>
       <div className="btns" style={{paddingTop:14}}><button className="btn red" onClick={() => {
-        const start = t => { const c = newChat(S, id, t); replace('chat', {id:c.id}); };
-        if (openingsOf(st).length > 1) openSheet(<OpeningSheet st={st} onPick={start}/>); else start();
+        if (opens.length > 1) openSheet(<OpeningSheet st={st} onPick={start}/>); else start();
       }}>새 대화 시작</button></div>
+      <div className="sec-h"><b>시작 시나리오 {opens.length}개</b>{opens.length > 1 && <button onClick={() => start(opens[Math.floor(Math.random() * opens.length)])}>무작위로 시작</button>}</div>
+      <div className="scen">
+        {opens.map((g, i) => <button key={i} onClick={() => start(g)}><b>{g.title || `시작 ${i + 1}`}</b><span>{preview(g.setup || g.text) || '빈 장면으로 시작'}</span><em>이걸로 시작 ›</em></button>)}
+        <button className="gen" disabled={making} onClick={make}>{making ? 'AI가 시나리오 3개를 쓰는 중… (1분쯤)' : '+ AI로 시작 시나리오 3개 만들기'}</button>
+      </div>
       {cast.length > 0 && <>
         <div className="sec">등장인물 {cast.length}명</div>
         <div className="cast">{cast.map((x, i) => {

@@ -80,16 +80,18 @@ export default function StoryEditor({id}){
       <div className="fl" style={{marginTop:18}}><span>유저 사칭 방지 기본값<small style={{display:'block', fontWeight:400, marginTop:2}}>끄면 모델이 내 대사를 받아 적고 내 표정, 속마음도 묘사해요</small></span><button className={'toggle ' + (d.noImpersonate !== false ? 'on' : '')} aria-label="유저 사칭 방지 기본값" onClick={() => { d.noImpersonate = d.noImpersonate === false; bump(); }}/></div>
       <div className="fl" style={{marginTop:18}}><span>19금 스토리<small style={{display:'block', fontWeight:400, marginTop:2}}>목록과 대화방에 19 뱃지가 붙어요</small></span><button className={'toggle ' + (d.adult ? 'on' : '')} aria-label="19금 스토리" onClick={() => { d.adult = !d.adult; bump(); }}/></div>
       {f('greeting', '첫 메시지', '대화를 시작하는 장면. {{user}} 쓰면 내 이름이 들어가요.', 5)}
-      {d.altGreetings?.length > 0 && <input style={{marginTop:8}} placeholder="첫 메시지 장면 이름 (예: 입소식 날)" {...bind('greetingTitle')}/>}
-      <label>다른 시작 장면<small>여러 개면 새 대화 때 고를 수 있어요</small></label>
+      <input style={{marginTop:8}} placeholder="첫 메시지 시나리오 이름 (예: 신입생 입학)" {...bind('greetingTitle')}/>
+      <textarea rows={3} style={{marginTop:6}} placeholder="시나리오 설정 (선택) : 이 시작에서만 적용할 내 처지와 관계. AI만 읽어요" {...bind('greetingSetup')}/>
+      <label>다른 시작 시나리오<small>여러 개면 새 대화 때 고를 수 있어요</small></label>
       {(d.altGreetings || []).map((g, k) => <div key={g.id || k} className="alt-open">
         <div style={{display:'flex', gap:8, alignItems:'center'}}>
-          <input placeholder="장면 이름 (예: 해변 모닥불)" value={g.title || ''} onChange={e => { g.title = e.target.value; bump(); }}/>
+          <input placeholder="시나리오 이름 (예: 만취한 다음 날)" value={g.title || ''} onChange={e => { g.title = e.target.value; bump(); }}/>
           <button className="linkbtn danger" style={{flexShrink:0}} onClick={() => { d.altGreetings.splice(k, 1); bump(); }}>삭제</button>
         </div>
-        <textarea rows={5} placeholder="이 장면의 첫 메시지" value={g.text || ''} onChange={e => { g.text = e.target.value; bump(); }}/>
+        <textarea rows={3} placeholder="시나리오 설정 (선택) : 이 시작에서만 적용할 내 처지와 관계. AI만 읽어요" value={g.setup || ''} onChange={e => { g.setup = e.target.value; bump(); }}/>
+        <textarea rows={5} placeholder="이 시나리오의 첫 메시지" value={g.text || ''} onChange={e => { g.text = e.target.value; bump(); }}/>
       </div>)}
-      <button className="linkbtn" onClick={() => { (d.altGreetings ||= []).push({id:uid(), title:'', text:''}); bump(); }}>+ 시작 장면 추가</button>
+      <button className="linkbtn" onClick={() => { (d.altGreetings ||= []).push({id:uid(), title:'', text:''}); bump(); }}>+ 시작 시나리오 추가</button>
       {f('guide', '플레이 가이드', '플레이 방법이나 추천 진행 방향', 3)}
       <div className="fl" style={{marginTop:18}}>매 답변 INFO 창<button className={'toggle ' + (d.infoOn ? 'on' : '')} aria-label="INFO 창 사용" onClick={() => { d.infoOn = !d.infoOn; if (d.infoOn && !d.info) d.info = DEFAULT_INFO; bump(); }}/></div>
       {d.infoOn && f('info', 'INFO 창 형식', '', 4, '모델이 이 형식을 채워 매 답변 위에 보여줘요')}
