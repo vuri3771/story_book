@@ -18,7 +18,12 @@ setDdb({ async send(cmd){
     if (i.UpdateExpression.includes('balance :c')){ it.balance = (it.balance || 0) + v[':c']; it.history = [...v[':h'], ...(it.history || [])]; }
     db.set(key(i.Key.uid, i.Key.k), it); return {};
   }
-  if (n === 'QueryCommand'){ const u = i.ExpressionAttributeValues[':u']; return {Items:[...db.values()].filter(x => x.uid === u && !x.k.startsWith('img#') && x.k !== 'wallet')}; }
+  if (n === 'QueryCommand'){
+    if (i.FilterExpression) throw new Error('ValidationException: Filter Expression can only contain non-primary key attributes');
+    const v = i.ExpressionAttributeValues;
+    const ok = i.KeyConditionExpression.includes('BETWEEN') ? k => k >= v[':a'] && k <= v[':b'] : k => k < v[':a'];
+    return {Items:[...db.values()].filter(x => x.uid === v[':u'] && ok(x.k))};
+  }
   if (n === 'BatchWriteCommand'){
     for (const r of Object.values(i.RequestItems)[0]){
       if (r.PutRequest) db.set(key(r.PutRequest.Item.uid, r.PutRequest.Item.k), r.PutRequest.Item);
@@ -36,7 +41,7 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, opts) => {
   if (!String(url).includes('api.anthropic.com')) return realFetch(url, opts);
   const body = JSON.parse(opts.body);
-  const text = body.stream ? '```info\n신력 47년 | 📍 본관\n```\n*서류철이 놓였다.*\n정소연 | "앉으세요."' : '다정하게 인사한다\n###\n장난스럽게 웃는다\n###\n대담하게 묻는다';
+  const text = body.stream ? '```info\n신력 47년 | 📍 본관\n```\n*서류철이 놓였다.*\n정소연 | "앉으세요."\n[[19]]' : '다정하게 인사한다\n###\n장난스럽게 웃는다\n###\n대담하게 묻는다';
   const usage = {input_tokens:1000, cache_read_input_tokens:9000};
   if (!body.stream) return new Response(JSON.stringify({content:[{type:'text', text}], usage:{...usage, output_tokens:100}, stop_reason:'end_turn'}), {status:200});
   const ev = [{type:'message_start', message:{usage:{...usage, output_tokens:1}}}, {type:'content_block_delta', delta:{type:'text_delta', text}}, {type:'message_delta', delta:{stop_reason:'end_turn'}, usage:{output_tokens:500}}];

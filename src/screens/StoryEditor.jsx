@@ -71,6 +71,8 @@ export default function StoryEditor({id}){
         {d.characters.length > 1 && <button className="linkbtn danger" onClick={() => { d.characters.splice(i, 1); bump(); }}>이 인물 삭제</button>}
       </div>)}
       <button className="linkbtn" onClick={() => { d.characters.push({id:uid(), name:'', profile:'', image:''}); bump(); }}>+ 등장인물 추가</button>
+      {f('commonRules', '등장인물 공통 대화 규칙', '- 모든 인물은 서로 존댓말을 쓴다\n- 대사는 한 번에 두 문장을 넘기지 않는다\n- 군인은 대답할 때 "~습니다"로 끝낸다', 4, '모든 인물에게 한꺼번에 적용돼요')}
+      <div className="fl" style={{marginTop:18}}><span>19금 스토리<small style={{display:'block', fontWeight:400, marginTop:2}}>목록과 대화방에 19 뱃지가 붙어요</small></span><button className={'toggle ' + (d.adult ? 'on' : '')} aria-label="19금 스토리" onClick={() => { d.adult = !d.adult; bump(); }}/></div>
       {f('greeting', '첫 메시지', '대화를 시작하는 장면. {{user}} 쓰면 내 이름이 들어가요.', 5)}
       {f('guide', '플레이 가이드', '플레이 방법이나 추천 진행 방향', 3)}
       <div className="fl" style={{marginTop:18}}>매 답변 INFO 창<button className={'toggle ' + (d.infoOn ? 'on' : '')} aria-label="INFO 창 사용" onClick={() => { d.infoOn = !d.infoOn; if (d.infoOn && !d.info) d.info = DEFAULT_INFO; bump(); }}/></div>

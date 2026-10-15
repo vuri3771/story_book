@@ -17,8 +17,11 @@ setDdb({ async send(cmd){
     db.set(key(i.Key.uid, i.Key.k), it); return {};
   }
   if (n === 'QueryCommand'){
-    const u = i.ExpressionAttributeValues[':u'];
-    return {Items:[...db.values()].filter(x => x.uid === u && !x.k.startsWith('img#') && x.k !== 'wallet')};
+    // 실제 DynamoDB 처럼 정렬 키 필터는 거절하고 키 조건만 해석한다
+    if (i.FilterExpression) throw new Error('ValidationException: Filter Expression can only contain non-primary key attributes');
+    const v = i.ExpressionAttributeValues;
+    const ok = i.KeyConditionExpression.includes('BETWEEN') ? k => k >= v[':a'] && k <= v[':b'] : k => k < v[':a'];
+    return {Items:[...db.values()].filter(x => x.uid === v[':u'] && ok(x.k))};
   }
   if (n === 'BatchWriteCommand'){
     for (const r of Object.values(i.RequestItems)[0]){

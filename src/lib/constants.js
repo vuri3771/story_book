@@ -44,6 +44,6 @@ export const PAY_METHODS = [{id:'card', name:'신용, 체크카드'}, {id:'kakao
 // 답변 길이별 예상 글자 수, 게이지 계산용
 export const EXPECTED_CHARS = {short:700, normal:1300, long:2600};
 export function newStory(){
-  return {id:uid(), title:'', intro:'', cover:'', world:'', characters:[{id:uid(), name:'', profile:'', image:''}],
+  return {id:uid(), title:'', intro:'', cover:'', world:'', adult:false, commonRules:'', characters:[{id:uid(), name:'', profile:'', image:''}],
     greeting:'', guide:'', infoOn:true, info:DEFAULT_INFO, memory:'', images:[], shortcuts:[], created:Date.now()};
 }

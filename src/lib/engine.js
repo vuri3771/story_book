@@ -7,6 +7,8 @@ import { callClaude, track, usingProxy } from './api';
 import { buildSystem, buildMessages, expandShortcut } from './prompt';
 
 export const run = { busy:false, abort:null, chatId:null, text:'', startedAt:0 };
+export const ADULT_RE = /\n?[ \t]*\[\[\s*19\s*\]\][ \t]*\s*$/;
+export const isAdultChat = (c, st) => !!st?.adult || !!c?.messages?.some(m => m.adult);
 
 export async function generate(c){
   if (!c || run.busy) return;
@@ -19,6 +21,8 @@ export async function generate(c){
       max_tokens:Math.max(LENGTHS[c.length || 'normal'].max, (c.minChars || 0) * 3 + 3000), effort:c.effort || 'low', signal:run.abort.signal,
       onText: t => { run.text = t; notify(); }});
     m.text = r.text;
+    // 모델이 붙인 수위 표시 [[19]] 는 본문에서 떼고 메시지 표시로 옮긴다
+    if (ADULT_RE.test(m.text)){ m.adult = true; m.text = m.text.replace(ADULT_RE, '').trimEnd(); }
     if (r.stop === 'refusal' && !r.text) m.text = '(모델이 이 장면을 이어 쓰지 않았어요. 다시 생성하거나 방향을 바꿔보세요.)';
     if (!m.text) c.messages.pop();
     track(r.usage, c.model, c, m);

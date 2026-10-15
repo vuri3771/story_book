@@ -19,6 +19,8 @@ export function buildSystem(c){
   if (st.infoOn && st.info) t += '\n\n[INFO 창]\n일반 응답의 맨 처음에 아래 형식을 지금 상황에 맞게 채운 코드블록을 넣는다. 코드블록 첫 줄에 ```info 라고 쓴다. 날짜와 시간은 이야기 흐름에 맞게 갱신하고, 장면에 있는 인물만 적는다. 단축어 요청으로 코드블록만 출력할 때는 INFO 창을 넣지 않는다.\n' + st.info;
   t += '\n\n[스토리: ' + st.title + ']\n' + (st.world || '');
   for (const ch of st.characters.filter(x => x.name || x.profile)) t += '\n\n[등장인물: ' + ch.name + ']\n' + ch.profile;
+  if (st.commonRules?.trim()) t += '\n\n[등장인물 공통 대화 규칙 · 모든 인물의 대사와 행동에 항상 적용]\n' + st.commonRules.trim();
+  t += '\n\n[수위 표시]\n이번 응답에 성인 수위(노골적인 성적 묘사나 잔혹한 폭력 묘사)가 들어가면 응답의 맨 마지막 줄에 [[19]] 만 단독으로 쓴다. 그렇지 않으면 쓰지 않는다.';
   t += '\n\n[{{user}}의 대화 프로필: ' + (p?.name || '나') + ']\n' + (p?.desc || '');
   const tags = [...(st.images||[]).filter(i => i.tag).map(i => i.tag), ...st.characters.filter(x => x.image && x.name).map(x => x.name)];
   if (tags.length) t += '\n\n[이미지]\n장면에 딱 맞을 때만 가끔 한 줄에 [[이미지:이름]] 을 넣으면 그 이미지가 보인다. 쓸 수 있는 이름: ' + tags.join(', ');

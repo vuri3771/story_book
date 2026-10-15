@@ -1,6 +1,7 @@
 import { useStore, go, commit, toast } from '../lib/store';
 import { storyOf, personaOf, coverOf, plain, ago } from '../lib/helpers';
-import { run } from '../lib/engine';
+import { run, isAdultChat } from '../lib/engine';
+import { Badge19 } from '../render';
 import { ask } from '../sheets';
 import { Icon } from '../icons';
 
@@ -21,7 +22,7 @@ export default function Chats(){
           return <div key={c.id} className="crow">
             <button className="row" onClick={() => go('chat', {id:c.id})}>
               <img className="th" src={coverOf(st)} alt=""/>
-              <div className="mid"><b>{st.title}</b><span>{personaOf(c)?.name || '나'} · {c.messages.filter(m => m.role === 'assistant').length}턴 · {plain(last?.text || '').slice(0, 50)}</span></div>
+              <div className="mid"><b>{st.title}{isAdultChat(c, st) && <Badge19 className="inline"/>}</b><span>{personaOf(c)?.name || '나'} · {c.messages.filter(m => m.role === 'assistant').length}턴 · {plain(last?.text || '').slice(0, 50)}</span></div>
               <small>{ago(c.updated)}</small>
             </button>
             <button className="icon-btn" aria-label="대화 삭제" onClick={() => del(c)}><Icon n="trash"/></button>

@@ -1,5 +1,6 @@
 import { useStore, go, back, replace, commit, openSheet } from '../lib/store';
 import { CharacterSheet, CharPh } from '../sheets';
+import { Badge19 } from '../render';
 import { uid } from '../lib/constants';
 import { storyOf, personaOf, coverOf, plain, ago } from '../lib/helpers';
 import { Icon } from '../icons';
@@ -21,7 +22,7 @@ export default function StoryPage({id}){
   return <>
     <div className="hdr"><button className="icon-btn" aria-label="뒤로" onClick={back}><Icon n="back"/></button><div className="t">{st.title}</div><button className="icon-btn" aria-label="편집" onClick={() => go('editor', {id})}><Icon n="pen"/></button></div>
     <div className="scroll">
-      <div className="hero"><img src={coverOf(st)} alt=""/><div className="ov"><h1>{st.title || '제목 없음'}</h1><p>{st.intro}</p></div></div>
+      <div className="hero"><img src={coverOf(st)} alt=""/><div className="ov"><h1>{st.title || '제목 없음'}{st.adult && <Badge19 className="inline"/>}</h1><p>{st.intro}</p></div></div>
       <div className="btns" style={{paddingTop:14}}><button className="btn red" onClick={() => { const c = newChat(S, id); replace('chat', {id:c.id}); }}>새 대화 시작</button></div>
       {cast.length > 0 && <>
         <div className="sec">등장인물 {cast.length}명</div>

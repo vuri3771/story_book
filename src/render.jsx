@@ -63,8 +63,8 @@ export function renderAI(text, st, turn, scene){
       continue;
     }
     for (const raw of p.split('\n')){
-      const line = raw.trim(); if (!line) continue;
-      const im = line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
+      const line = raw.trim(); if (!line || /^\[\[\s*19\s*\]\]$/.test(line)) continue;
+      const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
       const d = line.match(/^([^|"“*\[]{1,24}?)\s*[|｜]\s*(.+)$/);
       if (d){ const av = avatarOf(st, d[1]); out.push(<p key={k++} className="dlg">{av && <img className="ava" src={av} alt=""/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></p>); continue; }
@@ -74,5 +74,8 @@ export function renderAI(text, st, turn, scene){
   if (scene) out.splice(infoAt + 1, 0, <figure key="scene" className="scene"><img src={scene.data} alt={scene.tag}/></figure>);
   return out;
 }
+
+// 19금 뱃지
+export const Badge19 = ({className = ''}) => <span className={'b19 ' + className} aria-label="19세 이상">19</span>;
 
 export function renderUser(text){ return String(text).split('\n').filter(l => l.trim()).map((l, i) => <p key={i}><Inline s={l}/></p>); }

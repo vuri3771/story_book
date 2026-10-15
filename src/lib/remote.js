@@ -78,6 +78,11 @@ function toItems(state){
   return items;
 }
 
+// ----- 동기화 상태 : 설정 화면에 보여준다 -----
+const MAX_ITEM = 380 * 1024;
+export let syncStatus = {at:0, error:'', skipped:0};
+function setStatus(s){ syncStatus = s; notify(); }
+
 // ----- 올리기 -----
 let synced = (() => { try { return JSON.parse(lsGet(SYNCED_KEY)) || {}; } catch(e){ return {}; } })();
 let syncTimer, syncing = false, again = false;
@@ -91,8 +96,13 @@ export async function pushNow(){
   syncing = true;
   try {
     const items = toItems(S);
-    const put = [], del = [];
-    for (const [k, d] of items){ const h = hash(d); if (synced[k] !== h) put.push({k, d, h}); }
+    const put = [], del = [], skipped = [];
+    for (const [k, d] of items){
+      const h = hash(d); if (synced[k] === h) continue;
+      // 한 항목이 서버 한도(400KB)를 넘으면 그것만 빼고 나머지는 올린다. 예전엔 하나 때문에 전부 막혔다
+      if (new Blob([d]).size > MAX_ITEM){ skipped.push(k); continue; }
+      put.push({k, d, h});
+    }
     for (const k of Object.keys(synced)) if (!items.has(k)) del.push(k);
     // 요청 하나가 4MB 를 넘지 않게 나눠 보낸다
     let batch = [], size = 0;
@@ -111,8 +121,10 @@ export async function pushNow(){
     }
     await flush();
     for (let i = 0; i < del.length; i += 200) await flush(del.slice(i, i + 200));
+    setStatus({at:Date.now(), error:'', skipped:skipped.length});
   } catch(e){
     console.warn('서버 저장 실패', e);
+    setStatus({...syncStatus, error:e.message});
   } finally {
     syncing = false;
     if (again){ again = false; scheduleSync(); }

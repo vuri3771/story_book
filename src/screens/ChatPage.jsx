@@ -3,8 +3,8 @@ import { useStore, ui, go, back, goHome, commit, openSheet, openDrawer, toast } 
 import { EXPECTED_CHARS } from '../lib/constants';
 import { chatById, storyOf, modelOf, fill, won } from '../lib/helpers';
 import { allShortcuts } from '../lib/prompt';
-import { run, send, regen, suggest } from '../lib/engine';
-import { renderAI, renderUser, Inline, pickScene } from '../render';
+import { run, send, regen, suggest, isAdultChat } from '../lib/engine';
+import { renderAI, renderUser, Inline, pickScene, Badge19 } from '../render';
 import { ask, ModelSheet, EditMsgSheet } from '../sheets';
 import ChatMenu from './MenuPage';
 import { Icon } from '../icons';
@@ -97,7 +97,13 @@ export default function ChatPage({id}){
       acts = <div className="acts" hidden={!openActs.has(i)}><button onClick={edit}>수정</button>{m.role === 'user' && <button onClick={delFrom}>삭제</button>}</div>;
     }
     const toggle = e => { if (e.target.closest('button')) return; const n = new Set(openActs); n.has(i) ? n.delete(i) : n.add(i); setOpenActs(n); };
-    return <div key={i} className={'m ' + m.role} onClick={toggle}>{body}{acts}</div>;
+    // 19금으로 넘어가는 첫 답변에는 경계 표시, 이어지는 19금 답변에는 작은 뱃지
+    let mark = null;
+    if (m.adult){
+      const prevAdult = c.messages.slice(0, i).reverse().find(x => x.role === 'assistant')?.adult;
+      mark = prevAdult ? <div className="adult-mark"><Badge19/></div> : <div className="adult-mark start"><Badge19/><span>여기부터 19금 장면</span></div>;
+    }
+    return <div key={i} className={'m ' + m.role} onClick={toggle}>{mark}{body}{acts}</div>;
   });
 
   const scList = pop === 'sc' ? allShortcuts(c).filter(s => (ui.scTab === 'all' || s.owner === ui.scTab) && (!scQuery || s.name.includes(scQuery))) : [];
@@ -105,7 +111,7 @@ export default function ChatPage({id}){
   return <>
     <div className="hdr">
       <button className="icon-btn" aria-label="뒤로" onClick={() => { if (busy) run.abort?.abort(); back(); }}><Icon n="back"/></button>
-      <div className="t">{st.title}</div>
+      <div className="t">{st.title}{isAdultChat(c, st) && <Badge19 className="inline"/>}</div>
       <button className="icon-btn" aria-label="메뉴" onClick={() => openDrawer(<ChatMenu id={c.id}/>)}><Icon n="menu"/></button>
       {busy && <div className="gauge" role="progressbar" aria-label="답변 생성 중" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i style={{width: pct + '%'}}/></div>}
     </div>

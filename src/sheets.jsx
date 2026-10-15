@@ -5,7 +5,7 @@ import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, PAY_METHODS, uid } from './
 import { modelOf, won, storyOf, exportAll, importFile } from './lib/helpers';
 import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
-import { remoteOn, token, switchAccount, testCharge } from './lib/remote';
+import { remoteOn, token, switchAccount, testCharge, syncStatus } from './lib/remote';
 import { Icon } from './icons';
 
 export function Sheet({children, ok, danger, onOk}){
@@ -92,6 +92,10 @@ function AccountCode(){
     {show && <input readOnly value={mine} onFocus={e => e.target.select()}/>}
     <input value={code} onChange={e => setCode(e.target.value)} placeholder="다른 기기의 연결 코드 붙여넣기" autoComplete="off"/>
     <button className="linkbtn" disabled={!code.trim() || busy} onClick={apply}>{busy ? '불러오는 중…' : '이 코드로 불러오기'}</button>
+    <div className="note" style={{padding:0}}>
+      {syncStatus.error ? `서버 저장 실패 : ${syncStatus.error}` : syncStatus.at ? `서버에 저장됨 · ${new Date(syncStatus.at).toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'})}` : '서버 저장 대기 중'}
+      {syncStatus.skipped > 0 && ` · 너무 큰 항목 ${syncStatus.skipped}개는 이 기기에만 있어요`}
+    </div>
   </>;
 }
 

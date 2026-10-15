@@ -35,14 +35,22 @@ export const handler = async event => {
 };
 
 // 이미지와 지갑을 뺀 전부, 이미지는 /images 로 따로 받는다
+// 정렬 키 k 는 필터 조건에 못 쓰므로 키 범위로 나눠 읽는다
+//   chat#… < img#… < meta < story#… < wallet  →  [k < img#] 와 [meta ≤ k ≤ story$]
 async function getState(uid){
-  const items = []; let start;
-  do {
-    const r = await ddb.send(new QueryCommand({TableName:TABLE, KeyConditionExpression:'uid = :u', ExpressionAttributeValues:{':u':uid, ':img':'img#', ':w':'wallet'},
-      FilterExpression:'NOT begins_with(k, :img) AND k <> :w', ExclusiveStartKey:start}));
-    for (const it of r.Items || []) items.push({k:it.k, d:it.d});
-    start = r.LastEvaluatedKey;
-  } while (start);
+  const items = [];
+  const ranges = [
+    {KeyConditionExpression:'uid = :u AND k < :a', ExpressionAttributeValues:{':u':uid, ':a':'img#'}},
+    {KeyConditionExpression:'uid = :u AND k BETWEEN :a AND :b', ExpressionAttributeValues:{':u':uid, ':a':'meta', ':b':'story$'}}
+  ];
+  for (const q of ranges){
+    let start;
+    do {
+      const r = await ddb.send(new QueryCommand({TableName:TABLE, ...q, ExclusiveStartKey:start}));
+      for (const it of r.Items || []) items.push({k:it.k, d:it.d});
+      start = r.LastEvaluatedKey;
+    } while (start);
+  }
   return {items};
 }
 
