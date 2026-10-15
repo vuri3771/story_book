@@ -7,6 +7,7 @@ import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
 import { remoteOn, token, switchAccount, testCharge, syncStatus } from './lib/remote';
 import { Icon } from './icons';
+import { FONTS, look, setLook, loadFont, SIZE_MIN, SIZE_MAX } from './lib/look';
 
 export function Sheet({children, ok, danger, onOk}){
   useStore();
@@ -37,6 +38,30 @@ export function Drawer({children}){
 export function ask(msg, okLabel, fn){ openSheet(<Sheet ok={okLabel} danger onOk={fn}><h3>{msg}</h3></Sheet>); }
 
 // ----- 설정 : 시트와 설정 탭이 같은 폼을 쓴다 -----
+// ----- 글꼴과 대화 글자 크기 : 누르는 즉시 바뀌고 이 기기에만 저장된다 -----
+export function TextLook(){
+  const [, redraw] = useState(0);
+  // 고를 때 각 글꼴 모양을 바로 보여주려고 목록을 열면 전부 불러온다
+  useState(() => FONTS.forEach(loadFont));
+  const set = patch => { setLook(patch); redraw(n => n + 1); };
+  return <>
+    <label>글꼴<small>이 기기에만 적용돼요</small></label>
+    <div className="look-fonts">
+      {FONTS.map(f => <button key={f.id} className={look.font === f.id ? 'on' : ''} style={{fontFamily:f.family}} aria-pressed={look.font === f.id} onClick={() => set({font:f.id})}>{f.name}<small>가나다 Aa 123</small></button>)}
+    </div>
+    <label>대화 글자 크기</label>
+    <div className="look-size">
+      <button aria-label="글자 작게" style={{fontSize:13}} onClick={() => set({size:look.size - .05})}>가</button>
+      <input type="range" min={SIZE_MIN} max={SIZE_MAX} step=".05" value={look.size} aria-label="대화 글자 크기" onChange={e => set({size:+e.target.value})}/>
+      <button aria-label="글자 크게" style={{fontSize:19}} onClick={() => set({size:look.size + .05})}>가</button>
+      <b>{Math.round(look.size * 100)}%</b>
+    </div>
+    <div className="look-prev"><i>창밖으로 비가 그치고 있었다.</i> "이제 가 볼까?" 그가 우산을 접으며 웃었다.</div>
+    {look.size !== 1 && <button className="linkbtn" onClick={() => set({size:1})}>기본 크기로</button>}
+  </>;
+}
+export function LookSheet(){ return <Sheet><h3>글꼴, 글자 크기</h3><div className="form"><TextLook/></div><div className="sb"><button className="btn dark" onClick={closeSheet}>닫기</button></div></Sheet>; }
+
 export function openSettings(){ openSheet(<Sheet><h3>설정</h3><SettingsForm inSheet/></Sheet>); }
 export function SettingsForm({inSheet}){
   const s = S.settings;
@@ -52,6 +77,7 @@ export function SettingsForm({inSheet}){
   return (
     <>
       <div className="form">
+        <TextLook/>
         {usingProxy
           ? <div className="note" style={{padding:0}}>Claude 키는 서버에 있어서 여기서 넣지 않아도 돼요.</div>
           : <><label>Anthropic API 키<small>이 브라우저에만 저장돼요</small></label><input type="password" value={f.apiKey} onChange={set('apiKey')} placeholder="sk-ant-..." autoComplete="off"/></>}

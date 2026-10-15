@@ -47,8 +47,8 @@ body{overflow:hidden}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:6px 16px 24px}
 .scard{border-radius:14px;overflow:hidden;background:var(--surface);text-align:left;display:flex;flex-direction:column}
 .scard .cv{aspect-ratio:3/4;width:100%;object-fit:cover;display:block;background:var(--surface2)}
-.scard .nm{padding:10px 12px 2px;font-weight:700;font-size:15px}
-.scard .ds{padding:0 12px 12px;font-size:12.5px;color:var(--narr);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.scard .nm{padding:10px 12px 2px;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scard .ds{margin:0 12px 12px;font-size:12.5px;color:var(--narr);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .scard.new{border:1.5px dashed var(--line);background:none;align-items:center;justify-content:center;min-height:220px;color:var(--muted);gap:6px;font-size:14px}
 .scard.new b{font-size:30px;font-weight:400;color:var(--accent)}
 .row{display:flex;gap:12px;align-items:center;padding:12px 16px;width:100%;text-align:left}
@@ -78,7 +78,7 @@ body{overflow:hidden}
 
 /* 대화 */
 #log{padding:18px 18px 8px}
-.m{margin-bottom:22px;line-height:1.75;font-size:15.5px;word-break:keep-all;overflow-wrap:anywhere}
+.m{margin-bottom:22px;line-height:1.75;font-size:calc(15.5px * var(--fz,1));word-break:keep-all;overflow-wrap:anywhere}
 .m p{margin:0 0 12px}
 .m .narr{color:var(--narr)}
 .m .dlg{color:var(--text)}
@@ -87,11 +87,11 @@ body{overflow:hidden}
 .m .q{color:var(--text)}
 .m i{font-style:normal;color:var(--narr)}
 .m.user{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0 4px;color:var(--text)}
-.info{background:var(--info-bg);color:var(--info-text);border-radius:14px;overflow:hidden;margin:4px 0 16px;font-size:15px}
-.info .ih{background:var(--info-head);color:#9b9b9b;font-weight:700;padding:10px 18px;letter-spacing:.06em;font-size:14px}
+.info{background:var(--info-bg);color:var(--info-text);border-radius:14px;overflow:hidden;margin:4px 0 16px;font-size:calc(15px * var(--fz,1))}
+.info .ih{background:var(--info-head);color:#9b9b9b;font-weight:700;padding:10px 18px;letter-spacing:.06em;font-size:calc(14px * var(--fz,1))}
 .info .ib{padding:14px 18px 16px;white-space:pre-wrap;line-height:1.7}
 .info .a{color:var(--info-a)} .info .b{color:var(--info-b)}
-.cblock{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;white-space:pre-wrap;line-height:1.75;margin:4px 0 14px;font-size:15px}
+.cblock{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;white-space:pre-wrap;line-height:1.75;margin:4px 0 14px;font-size:calc(15px * var(--fz,1))}
 .scene{margin:6px -18px 16px;text-align:center}
 .scene img{max-width:100%;max-height:70vh;display:block;margin:0 auto}
 .acts{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--muted);margin-top:-4px}
@@ -105,7 +105,7 @@ body{overflow:hidden}
 .dock{padding:8px 12px calc(12px + env(safe-area-inset-bottom,0px));flex-shrink:0;position:relative}
 .pop{background:var(--bg);border:1px solid var(--line);border-radius:18px;margin-bottom:10px;box-shadow:0 6px 24px rgba(0,0,0,.08);overflow:hidden}
 .composer{border:1.5px solid var(--line);border-radius:20px;padding:12px 14px 10px;background:var(--bg)}
-.composer textarea{border:0;padding:4px 2px;resize:none;max-height:160px;min-height:30px;font-size:15.5px;background:transparent}
+.composer textarea{border:0;padding:4px 2px;resize:none;max-height:160px;min-height:30px;font-size:calc(15.5px * var(--fz,1));background:transparent}
 .composer textarea:focus-visible{outline:none}
 .tools{display:flex;align-items:center;gap:8px;margin-top:6px}
 .circ{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex-shrink:0}
@@ -119,7 +119,7 @@ body{overflow:hidden}
 
 /* 추천 답변 */
 .sug{display:flex;gap:10px;align-items:center;padding:6px 10px}
-.sug .body{flex:1;background:var(--surface);border-radius:18px;padding:12px 16px;line-height:1.65;text-align:left;font-size:14.5px}
+.sug .body{flex:1;background:var(--surface);border-radius:18px;padding:12px 16px;line-height:1.65;text-align:left;font-size:calc(14.5px * var(--fz,1))}
 .sug .body i{font-style:normal;color:var(--narr)}
 .sug .pen{width:34px;height:34px;display:grid;place-items:center;color:var(--narr);flex-shrink:0}
 .sug-wrap{padding:8px 0;max-height:46vh;overflow-y:auto}

@@ -3,7 +3,7 @@ import { useStore, go, tab, commit, openSheet, closeDrawer, toast } from '../lib
 import { STYLES, LENGTHS, EFFORTS, DEFAULT_INFO } from '../lib/constants';
 import { chatById, storyOf, personaOf, modelOf, coverOf, won } from '../lib/helpers';
 import { run } from '../lib/engine';
-import { Drawer, ask, GuideSheet, ProfileSheet, NotesSheet, StyleSheet, MemorySheet, LengthSheet, ImageSheet, requestShortcutPop } from '../sheets';
+import { Drawer, ask, GuideSheet, ProfileSheet, NotesSheet, StyleSheet, MemorySheet, LengthSheet, ImageSheet, LookSheet, requestShortcutPop } from '../sheets';
 import { Icon } from '../icons';
 
 const MI = ({icon, label, right, onClick}) => <button className="mi" onClick={onClick}><Icon n={icon}/><span className="l">{label}</span>{right && <small>{right}</small>}<span className="chev" style={{width:20}}><Icon n="chev"/></span></button>;
@@ -28,6 +28,7 @@ export default function ChatMenu({id}){
         <MI icon="note" label="유저노트" right={c.notes ? '작성됨' : ''} onClick={() => openSheet(<NotesSheet chat={c}/>)}/>
         <MI icon="style" label="문체 변경" right={STYLES[c.style || 'novel']?.name} onClick={() => openSheet(<StyleSheet chat={c}/>)}/>
         <MI icon="clock" label="요약 메모리" right={c.memory ? `${c.summarizedUpTo}개 요약됨` : ''} onClick={() => openSheet(<MemorySheet chat={c}/>)}/>
+        <MI icon="style" label="글꼴, 글자 크기" onClick={() => openSheet(<LookSheet/>)}/>
         <MI icon="slash" label="단축어 관리" onClick={() => { requestShortcutPop(); closeDrawer(); commit(); }}/>
         <div className="ml">스토리 고급 설정</div>
         <MI icon="slider" label="답변 길이 및 생각 조절" right={LENGTHS[c.length||'normal'].name + (c.minChars ? ` ${c.minChars}자+` : '') + ' · ' + EFFORTS[c.effort||'low']} onClick={() => openSheet(<LengthSheet chat={c}/>)}/>
