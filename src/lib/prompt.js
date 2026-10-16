@@ -52,6 +52,9 @@ export function buildSystem(c){
   for (const ch of st.characters.filter(x => x.name || x.profile)) t += '\n\n[등장인물: ' + ch.name + ']\n' + ch.profile;
   if (st.commonRules?.trim()) t += '\n\n[등장인물 공통 대화 규칙 · 모든 인물의 대사와 행동에 항상 적용]\n' + st.commonRules.trim();
   t += '\n\n[{{user}}의 대화 프로필: ' + (p?.name || '나') + ']\n' + (p?.desc || '');
+  // '한 린'처럼 성과 이름이 띄어져 있으면 친한 사이는 이름만 부르게 한다
+  const nm = (p?.name || '').trim().split(/\s+/);
+  if (nm.length === 2 && nm[0].length <= 2) t += `\n- 호칭 : 서술과 가까운 인물의 대사에서는 성을 빼고 '${nm[1]}'(이)라고만 부른다. '${p.name}'처럼 성까지 붙여 부르는 건 처음 만난 사이, 격식 있는 자리, 화가 나서 정색할 때뿐이다.`;
   if (c.setup?.trim()) t += '\n\n[이 대화의 시작 시나리오' + (c.openingTitle ? ': ' + c.openingTitle : '') + ' · 프로필이나 세계관과 어긋나면 이 설정을 따른다]\n' + c.setup.trim();
   const tags = [...(st.images||[]).filter(i => i.tag).map(i => i.tag), ...st.characters.filter(x => x.image && x.name).map(x => x.name)];
   if (tags.length) t += '\n\n[이미지]\n장면에 딱 맞을 때만 가끔 한 줄에 [[이미지:이름]] 을 넣으면 그 이미지가 보인다. 쓸 수 있는 이름: ' + tags.join(', ');
