@@ -290,3 +290,12 @@
 .m.user b{font-weight:700;color:var(--text)}
 .m .sc{color:var(--blue);font-weight:700}
 .m .ooc{color:var(--muted);font-size:.88em}
+
+/* 비밀번호 화면 */
+.lock{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px 16px;background:var(--bg);text-align:center}
+.lock img{border-radius:16px}
+.lock h1{margin:8px 0 0;font-size:22px}
+.lock p{margin:0;color:var(--muted);font-size:14px}
+.lock input{width:min(280px,100%);text-align:center;font-size:20px;letter-spacing:.3em;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface)}
+.lock small{color:var(--accent);font-size:13px}
+.lock .btn{flex:none;width:min(280px,100%)}
