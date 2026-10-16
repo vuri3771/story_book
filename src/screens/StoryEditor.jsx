@@ -95,6 +95,7 @@ export default function StoryEditor({id}){
       {f('guide', '플레이 가이드', '플레이 방법이나 추천 진행 방향', 3)}
       <div className="fl" style={{marginTop:18}}>매 답변 INFO 창<button className={'toggle ' + (d.infoOn ? 'on' : '')} aria-label="INFO 창 사용" onClick={() => { d.infoOn = !d.infoOn; if (d.infoOn && !d.info) d.info = DEFAULT_INFO; bump(); }}/></div>
       {d.infoOn && f('info', 'INFO 창 형식', '', 4, '모델이 이 형식을 채워 매 답변 위에 보여줘요')}
+      {d.infoOn && <div className="fl" style={{marginTop:10}}>INFO 창 모양<select style={{width:'auto'}} value={d.infoStyle || 'box'} onChange={e => { d.infoStyle = e.target.value; bump(); }}><option value="box">어두운 상자</option><option value="plain">선 사이 글자</option></select></div>}
       {f('memory', '장기 기억', '한 줄에 하나씩. 이 스토리의 모든 대화에 항상 적용돼요.', 4)}
       <label>이미지 보관함<small>{d.images.length}/50</small></label>
       <div className="edit-hint" style={{fontSize:12.5, color:'var(--muted)', lineHeight:1.6}}>키워드(쉼표로 여러 개)를 붙여두면 답변 내용과 맞는 이미지가 대화 중에 자동으로 나와요. 키가 있으면 넣는 순간 키워드를 자동으로 달아줘요.</div>

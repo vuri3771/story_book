@@ -339,3 +339,10 @@
 /* 이름 줄 + 대사 + 발음 + 번역은 한 덩어리 : 안쪽 줄 사이는 줄 간격만 */
 #log .m .dgroup .who-line{display:inline}
 #log .m .who-line .who{font-weight:600}
+/* 묶음 안의 (발음), (번역) 줄은 크랙처럼 회색 */
+#log .m .dgroup .tr{color:#737373}
+/* 선 사이 글자형 상태창(크랙 순애남) */
+#log .info-plain{color:#1a1918;padding:calc(var(--c-fz) * 1.2) 0;margin:0 0 calc(var(--c-gap) * 1.2);border-bottom:1px solid #e5e5e5;font-size:calc(var(--c-fz) * 1.15 * var(--fz,1));line-height:1.6;white-space:pre-wrap}
+:root[data-theme="dark"] #log .m .dgroup .tr{color:var(--narr)}
+:root[data-theme="dark"] #log .info-plain{color:var(--text);border-color:var(--line)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) #log .m .dgroup .tr{color:var(--narr)} :root:not([data-theme="light"]) #log .info-plain{color:var(--text);border-color:var(--line)} }

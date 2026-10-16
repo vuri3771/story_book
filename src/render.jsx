@@ -31,7 +31,14 @@ function InfoHead({s}){
     return <Fragment key={i}>{x}</Fragment>;
   });
 }
-function Info({body, turn}){
+// 선 사이 글자형 상태창 : 크랙 순애남처럼 T3 한 줄, 그 아래 상태 줄을 검은 글자로만 보여준다
+function InfoPlain({body, turn}){
+  const lines = body.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  const hasT = /^\s*[T𝖳𝗧]\s?\d/.test(lines[0] || '');
+  return <div className="info-plain">{turn && !hasT ? <div>T{turn}</div> : null}{lines.map((l, i) => <div key={i}>{l.replace(/\s*[|｜︱]\s*/g, ' | ')}</div>)}</div>;
+}
+function Info({body, turn, plain}){
+  if (plain) return <InfoPlain body={body} turn={turn}/>;
   const lines = body.trim().split('\n');
   return <div className="info"><div className="ih">INFO</div><div className="ib">{lines.map((ln, i) => {
     const parts = ln.split(/\s*[|｜]\s*/);
@@ -84,7 +91,7 @@ export function renderAI(text, st, turn, scene){
     if (p.startsWith('```')){
       const lang = (p.match(/^```(\w*)/) || [])[1];
       const body = p.replace(/^```\w*\n?/, '').replace(/```$/, '');
-      if (lang === 'info' || (/^\s*\d{4}년|📍/.test(body) && out.length === 0)){ if (infoAt < 0) infoAt = out.length; out.push(<Info key={k++} body={body} turn={turn}/>); }
+      if (lang === 'info' || (/^\s*\d{4}년|📍/.test(body) && out.length === 0)){ if (infoAt < 0) infoAt = out.length; out.push(<Info key={k++} body={body} turn={turn} plain={st?.infoStyle === 'plain'}/>); }
       else out.push(<div key={k++} className="cblock">{body.trim()}</div>);
       continue;
     }
@@ -99,8 +106,9 @@ export function renderAI(text, st, turn, scene){
     for (const raw of body.split('\n')){
       const line = raw.trim(); if (!line) continue; if (/^\[\[\s*19\s*\]\]$/.test(line)) continue;
       const who = line.match(/^⸺\s*\**\s*([^*「"“]{1,24}?)\s*\**$/) || line.match(/^⌜\s*([^⌟]{1,24})\s*⌟$/) || (names.has(line.replace(/\*/g, '').trim()) && [line, line.replace(/\*/g, '').trim()]);
-      if (who){ flush(); const av = avatarOf(st, who[1].replace(/\s+/g, '')) || avatarOf(st, who[1]); add(<span key={k++} className="who-line">{av && <Ava ch={av} className="ava"/>}<span className="who">{who[1]}</span></span>, true); continue; }
-      if (/^\**\s*[「『"“]/.test(line) || (grp && /^\**\s*\(/.test(line))){ add(<Inline key={k++} s={line}/>); continue; }
+      if (who){ flush(); const av = avatarOf(st, who[1].replace(/\s+/g, '')) || avatarOf(st, who[1]); add(<span key={k++} className="who-line">{av && <Ava ch={av} className="ava"/>}<span className="who">{/^⸺/.test(line) ? '—— ' + who[1] : line.replace(/\*/g, '')}</span></span>, true); continue; }
+      if (/^\**\s*[「『"“]/.test(line)){ add(<Inline key={k++} s={line}/>); continue; }
+      if (grp && /^\**\s*\(/.test(line)){ add(<span key={k++} className="tr">{line}</span>); continue; }
       flush();
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
