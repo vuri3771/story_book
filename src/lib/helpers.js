@@ -82,6 +82,10 @@ export async function importFile(){
       const add = () => { S.stories.push(st); closeSheet(); commit(); goHome(); toast(`'${st.title}' 스토리를 추가했어요.`); };
       if (!old) return add();
       ask(`'${st.title}' 스토리가 이미 있어요. 새 파일 내용으로 바꿀까요? 진행 중인 대화는 그대로 남아요.`, '바꾸기', () => {
+        // 새 파일에 그림이 없으면 지금 쓰던 표지, 인물 사진, 장면 이미지를 그대로 둔다
+        if (!d.story.cover) st.cover = old.cover;
+        if (!d.story.images?.length) st.images = old.images;
+        st.characters = st.characters.map(x => { const o = (old.characters || []).find(y => y.name === x.name); return x.image || !o?.image ? x : {...x, image:o.image, face:x.face || o.face}; });
         Object.assign(old, st, {id:old.id, created:old.created});
         commit(); goHome(); toast(`'${st.title}' 스토리를 새 내용으로 바꿨어요.`);
       });

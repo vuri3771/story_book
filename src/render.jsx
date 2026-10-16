@@ -32,9 +32,12 @@ function InfoHead({s}){
   });
 }
 // 선 사이 글자형 상태창 : 크랙 순애남처럼 T3 한 줄, 그 아래 상태 줄을 검은 글자로만 보여준다
+// 크랙 소꿉친구2처럼 ✧ 𝘛𝘜𝘙𝘕 79 ⋄ … 한 줄로 쓰는 모양도 받는다. 모델이 짐작한 턴 숫자는 실제 턴으로 바꾼다
+const T_RE = /^([\s┌├│✧]*)(𝘛𝘜𝘙𝘕|TURN|[T𝖳𝗧𝘛])(\s?)\d+/u;
 function InfoPlain({body, turn}){
-  const lines = body.trim().split('\n').map(l => l.trim()).filter(Boolean);
-  const hasT = /^[\s┌├│]*[T𝖳𝗧]\s?\d/u.test(lines[0] || '');
+  let lines = body.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  const hasT = T_RE.test(lines[0] || '');
+  if (hasT && turn) lines[0] = lines[0].replace(T_RE, `$1$2$3${turn}`);
   return <div className="info-plain">{turn && !hasT ? <div>T{turn}</div> : null}{lines.map((l, i) => <div key={i}>{l.replace(/\s*[|｜︱]\s*/g, ' | ')}</div>)}</div>;
 }
 function Info({body, turn, plain}){
@@ -112,7 +115,7 @@ export function renderAI(text, st, turn, scene){
       flush();
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
-      const d = line.match(/^([^|"“*\[]{1,24}?)\s*[|｜]\s*(.+)$/);
+      const d = line.match(/^([^|│"“*\[]{1,24}?)\s*[|｜│]\s*(.+)$/);
       if (d){ const av = avatarOf(st, d[1]); add(<Fragment key={k++}>{av && <Ava ch={av} className="ava"/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></Fragment>, true); continue; }
       out.push(<p key={k++} className="narr"><Inline s={line}/></p>);
     }
