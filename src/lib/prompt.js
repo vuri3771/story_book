@@ -75,10 +75,11 @@ export function buildSystem(c){
   return blocks;
 }
 
-export function buildMessages(c, list){
+// en : NovelAI 번역 모드. 영어로 옮겨 둔 원문(m.en)이 있으면 그걸 보낸다
+export function buildMessages(c, list, en = false){
   const msgs = [];
   for (const m of list.slice(c.summarizedUpTo || 0)){
-    const text = m.role === 'user' ? (m.cont ? m.send : prepareUser(m.text, c)) : m.text;
+    const text = en && m.en ? m.en : m.role === 'user' ? (m.cont ? m.send : prepareUser(m.text, c)) : m.text;
     if (!text) continue;
     const last = msgs[msgs.length-1];
     if (last && last.role === m.role) last.content += '\n\n' + text; else msgs.push({role:m.role, content:text});

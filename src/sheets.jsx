@@ -79,11 +79,11 @@ export function LookSheet(){ return <Sheet><h3>글꼴, 글자 모양</h3><div cl
 export function openSettings(){ openSheet(<Sheet><h3>설정</h3><SettingsForm inSheet/></Sheet>); }
 export function SettingsForm({inSheet}){
   const s = S.settings;
-  const [f, setF] = useState({apiKey:s.apiKey, naiKey:s.naiKey || '', naiModel:s.naiModel || 'glm-4-6', naiBase:s.naiBase || NAI_BASE,
+  const [f, setF] = useState({apiKey:s.apiKey, naiKey:s.naiKey || '', naiModel:s.naiModel || 'glm-4-6', naiBase:s.naiBase || NAI_BASE, naiTranslate:s.naiTranslate !== false,
     model:s.model, helperModel:s.helperModel, keepRecent:s.keepRecent, summarizeEvery:s.summarizeEvery, krw:s.krw});
   const set = k => e => setF({...f, [k]: e.target.value});
   const saveIt = () => {
-    Object.assign(s, {apiKey:f.apiKey.trim(), naiKey:f.naiKey.trim(), naiModel:f.naiModel.trim() || 'glm-4-6', naiBase:f.naiBase.trim() || NAI_BASE,
+    Object.assign(s, {apiKey:f.apiKey.trim(), naiKey:f.naiKey.trim(), naiModel:f.naiModel.trim() || 'glm-4-6', naiBase:f.naiBase.trim() || NAI_BASE, naiTranslate:f.naiTranslate,
       model:f.model, helperModel:f.helperModel, keepRecent:Math.max(6, +f.keepRecent || 30), summarizeEvery:Math.max(4, +f.summarizeEvery || 20), krw:+f.krw || 1400});
     commit();
     if (inSheet) closeSheet(); else toast('저장했어요.');
@@ -98,6 +98,7 @@ export function SettingsForm({inSheet}){
         <label>NovelAI 키<small>NovelAI 계정 설정의 Persistent API Token</small></label><input type="password" value={f.naiKey} onChange={set('naiKey')} placeholder="pst-..." autoComplete="off"/>
         <label>NovelAI 모델 ID</label><input value={f.naiModel} onChange={set('naiModel')} placeholder="glm-4-6"/>
         <label>NovelAI 주소<small>보통은 그대로 두세요</small></label><input value={f.naiBase} onChange={set('naiBase')} placeholder={NAI_BASE}/>
+        <label>NovelAI 번역<small>영어로 주고받고 보조 모델이 한국어로 옮겨요</small></label><div className="seg"><button className={f.naiTranslate ? 'on' : ''} onClick={() => setF({...f, naiTranslate:true})}>켜기</button><button className={f.naiTranslate ? '' : 'on'} onClick={() => setF({...f, naiTranslate:false})}>끄기</button></div>
         <label>새 대화 기본 모델</label><select value={f.model} onChange={set('model')}>{MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
         <label>보조 모델<small>요약 메모리, 추천 답변에 써요</small></label><select value={f.helperModel} onChange={set('helperModel')}>{MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
         <label>원문 그대로 보낼 최근 메시지 수</label><input type="number" min="6" value={f.keepRecent} onChange={set('keepRecent')}/>
@@ -178,7 +179,7 @@ export function ModelSheet({chat}){
 export function EditMsgSheet({chat, i}){
   const m = chat.messages[i];
   const [v, setV] = useState(m.text);
-  return <Sheet ok="저장" onOk={() => { m.text = v; if (m.send) delete m.send; commit(); }}><h3>메시지 수정</h3><div className="form"><textarea rows="12" value={v} onChange={e => setV(e.target.value)}/></div></Sheet>;
+  return <Sheet ok="저장" onOk={() => { m.text = v; if (m.send) delete m.send; delete m.en; commit(); }}><h3>메시지 수정</h3><div className="form"><textarea rows="12" value={v} onChange={e => setV(e.target.value)}/></div></Sheet>;
 }
 
 // ----- 채팅방 메뉴 시트 -----

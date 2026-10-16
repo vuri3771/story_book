@@ -2,9 +2,9 @@
 // 스트리밍 중인 글은 run.text 에만 두고, 끝나면 메시지에 옮겨 저장한다
 import { S, notify, commit, save, toast, go } from './store';
 import { LENGTHS } from './constants';
-import { storyOf, personaOf, fill, plain } from './helpers';
+import { storyOf, personaOf, fill, plain, modelOf } from './helpers';
 import { callClaude, track, usingProxy } from './api';
-import { buildSystem, buildMessages, FREE_START } from './prompt';
+import { buildSystem, buildMessages, FREE_START, prepareUser } from './prompt';
 
 export const run = { busy:false, abort:null, chatId:null, text:'', startedAt:0 };
 export const ADULT_RE = /\n?[ \t]*\[\[\s*19\s*\]\][ \t]*\s*$/;
@@ -17,10 +17,17 @@ export async function generate(c){
   run.abort = new AbortController();
   notify();
   try {
-    const r = await callClaude({model:c.model, system:buildSystem(c), messages:buildMessages(c, c.messages.slice(0, -1)),
+    // NovelAI 는 한국어가 어색해서, 번역 모드면 영어로 주고받고 보조 모델이 양쪽을 옮긴다
+    const tr = modelOf(c.model).provider === 'nai' && S.settings.naiTranslate !== false;
+    const hist = c.messages.slice(0, -1);
+    if (tr) await toEnglish(c, hist);
+    let system = buildSystem(c);
+    if (tr) system = [...system, {type:'text', text:EN_RULE}];
+    const r = await callClaude({model:c.model, system, messages:buildMessages(c, hist, tr),
       max_tokens:Math.max(LENGTHS[c.length || 'normal'].max, (c.minChars || 0) * 3 + 3000), effort:c.effort || 'low', signal:run.abort.signal,
-      onText: t => { run.text = t; notify(); }});
+      onText: tr ? null : t => { run.text = t; notify(); }});
     m.text = r.text;
+    if (tr && r.text.trim() && r.stop !== 'aborted'){ m.en = r.text; m.text = await translate(c, r.text, 'ko'); }
     // 모델이 붙인 수위 표시 [[19]] 는 본문에서 떼고 메시지 표시로 옮긴다
     if (ADULT_RE.test(m.text)){ m.adult = true; m.text = m.text.replace(ADULT_RE, '').trimEnd(); }
     if (r.stop === 'refusal' && !r.text) m.text = '(모델이 이 장면을 이어 쓰지 않았어요. 다시 생성하거나 방향을 바꿔보세요.)';
@@ -33,6 +40,33 @@ export async function generate(c){
     if (c.messages[c.messages.length-1] === m){ if (run.text.trim()) m.text = run.text; else c.messages.pop(); }
     toast(e.message);
   } finally { run.busy = false; run.abort = null; run.text = ''; commit(); }
+}
+
+// ================= NovelAI 번역 모드 =================
+const EN_RULE = `[Language · NovelAI]
+Write your whole response in natural, vivid, literary English. A translator will turn it into Korean afterwards.
+- Keep every character name and place name exactly as written in Hangul (e.g. 무진 leaned closer.). Do not romanize names.
+- Keep the output format exactly: the \`\`\`info block (its labels may stay as they are), name lines, the name | "dialogue" / name ㅣ "dialogue" style, ⌜ ⌟ and ⸺ name lines, [[이미지:...]] tags.
+- The user's input below may be an English translation of what they wrote in Korean. Follow it the same way.`;
+
+// 마지막 내 메시지를 영어로 옮겨 m.en 에 둔다(이미 있으면 그대로)
+async function toEnglish(c, hist){
+  const m = [...hist].reverse().find(x => x.role === 'user');
+  if (!m || m.en || m.cont || !m.text?.trim()) return;
+  m.en = await translate(c, prepareUser(m.text, c), 'en');
+}
+
+// 보조 모델로 번역한다. 한국어로 옮길 때는 화면에 흘려 보여 준다. 실패하면 원문을 그대로 쓴다
+async function translate(c, text, to){
+  const sys = to === 'en'
+    ? 'You translate Korean roleplay input into natural English for a story AI. Keep [bracketed] markers, *asterisks*, names in Hangul, and line breaks. Output only the translation.'
+    : '너는 영어 롤플레이 소설을 자연스러운 한국어 웹소설 문장으로 옮기는 번역가다. 직역하지 말고 한국 독자가 읽기 좋은 문학적인 문장으로 옮긴다. 인물 이름과 지명은 한글 그대로 둔다. ```info 코드블록, 줄바꿈, 이름 | "대사" / 이름 ㅣ "대사" / ⌜ ⌟ / ⸺ 이름 줄, [[이미지:...]] 표시, 일본어 원문과 괄호 번역은 형식 그대로 유지한다. 대사는 인물 말투에 맞는 자연스러운 한국어 구어체로 옮긴다. 번역문만 출력한다.';
+  try {
+    const r = await callClaude({model:S.settings.helperModel, system:sys, messages:[{role:'user', content:text}], max_tokens:8000, effort:'low',
+      onText: to === 'ko' ? t => { run.text = t; notify(); } : null});
+    track(r.usage, S.settings.helperModel, c);
+    return r.text.trim() || text;
+  } catch(e){ toast('번역 실패, 원문으로 보여드려요 : ' + e.message); return text; }
 }
 
 // 성공하면 true, 보낼 게 없거나 단축어가 틀리면 false
