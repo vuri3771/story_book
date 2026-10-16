@@ -62,7 +62,8 @@ function Info({body, turn, plain}){
 // INFO 창의 장소, 시간도 같이 본다. 바로 앞 답변과 같은 이미지는 다시 띄우지 않는다
 export function pickScene(text, st, avoid){
   if (!st || st.autoImages === false) return null;
-  const imgs = (st.images || []).filter(i => i.tag?.trim());
+  // 태그에 19 나 🔞 가 들어간 이미지(친밀한 장면용)는 자동으로 고르지 않는다. 모델이 [[이미지:이름 19]]로 직접 고를 때만 보인다
+  const imgs = (st.images || []).filter(i => i.tag?.trim() && i.auto !== false && !/(^|\s)(19|🔞)(\s|$)/u.test(i.tag));
   if (!imgs.length || /\[\[\s*이미지/.test(text)) return null;
   const body = String(text).replace(/```\w*/g, ' ');
   let best = null, bs = 0;
