@@ -10,13 +10,13 @@ export const MODELS = [
 ];
 export const NAI_BASE = 'https://text.novelai.net/oa/v1';
 export const STYLES = {
-  novel:{name:'웹소설 (기본)', text:'3인칭 웹소설 문체. 감각적인 묘사와 인물의 미세한 표정과 행동을 살린다.'},
+  novel:{name:'웹소설 (기본)', text:'3인칭 웹소설 문체. 감각적이고 문학적인 묘사로 장면의 공기와 인물의 미세한 표정, 몸짓, 속마음을 살린다. 문장이 매끄럽게 이어지고 대화와 서술이 자연스럽게 어우러진다.'},
   lit:{name:'문학적인 서사', text:'문학적이고 밀도 높은 문장. 비유와 여운을 살리고 장면을 영화처럼 그린다.'},
   light:{name:'가볍고 빠른 전개', text:'짧은 문장과 대사 위주로 빠르고 경쾌하게 전개한다.'},
   first:{name:'캐릭터 1인칭 시점', text:'주요 캐릭터의 1인칭 시점으로 서술하고 그 인물의 속마음을 드러낸다.'},
   custom:{name:'직접 입력', text:''}
 };
-export const LENGTHS = {short:{name:'짧게', rule:'응답 본문은 2~3문단으로 짧게 쓴다.', max:3000}, normal:{name:'보통', rule:'응답 본문은 4~6문단으로 쓴다.', max:5000}, long:{name:'길게', rule:'응답 본문은 7~10문단으로 길고 풍부하게 쓴다.', max:9000}};
+export const LENGTHS = {short:{name:'짧게', rule:'응답 본문은 4~5문단, 공백 포함 800자 안팎으로 쓴다.', max:4000}, normal:{name:'보통', rule:'응답 본문은 8~12문단, 공백 포함 1,800자 이상으로 풍부하게 쓴다.', max:8000}, long:{name:'길게', rule:'응답 본문은 12~18문단, 공백 포함 3,000자 이상으로 길고 풍부하게 쓴다.', max:12000}};
 export const EFFORTS = {low:'빠르게', medium:'보통', high:'깊게'};
 export const DEFAULT_INFO = '2025년 | 📅 3월 14일(금) PM 07:52 | 📍 장소\n[👥]\n이름 | 표정 이모지 | 지금 상태 한 단어';
 export const DEFAULT_SHORTCUTS = [

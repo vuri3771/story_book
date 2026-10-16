@@ -4,6 +4,7 @@ import { genOpenings } from '../lib/recommend';
 import { CharacterSheet, CharPh, Sheet } from '../sheets';
 import { Badge19, Ava } from '../render';
 import { uid } from '../lib/constants';
+import { freeStart } from '../lib/engine';
 import { storyOf, personaOf, coverOf, plain, ago, deleteStory } from '../lib/helpers';
 import { Icon } from '../icons';
 
@@ -14,10 +15,14 @@ function newChat(S, storyId, opening){
   const c = {id:uid(), storyId, personaId, messages:[], memory:'', notes:'', summarizedUpTo:0, cost:0,
     model:s.model, effort:s.effort, length:s.length, style:'novel', customStyle:'', noImpersonate:st.noImpersonate !== false, updated:Date.now()};
   const o = opening || openingsOf(st)[0];
+  if (o.free){ c.freeStart = true; S.chats.push(c); commit(); freeStart(c); return c; }
   if (o.text) c.messages.push({role:'assistant', text:o.text});
   if (o.setup?.trim()){ c.setup = o.setup; c.openingTitle = o.title; }
   S.chats.push(c); commit(); return c;
 }
+// 시나리오 없이 INFO 창만 띄우고 내 첫 *행동*으로 장면을 연다
+const FREE = {title:'자유 시작', free:true};
+const FREE_DESC = '시나리오 없이 INFO 창만 띄워요. 첫 입력에 *행동·상황*을 써서 장면을 직접 열어요.';
 
 // 시작 장면이 여러 개인 스토리는 새 대화 때 고른다
 export const openingsOf = st => [{title:st.greetingTitle || '기본 시작', text:st.greeting || '', setup:st.greetingSetup || ''}, ...(st.altGreetings || []).filter(g => g.text?.trim())];
@@ -29,6 +34,7 @@ function OpeningSheet({st, onPick}){
   return <Sheet><h3>시작 시나리오 고르기</h3>
     <div className="openings">
       {list.map((g, i) => <button key={i} onClick={() => pick(g)}><b>{g.title || `시작 ${i + 1}`}</b><span>{preview(g.setup || g.text) || '빈 장면으로 시작'}</span></button>)}
+      <button onClick={() => pick(FREE)}><b>{FREE.title}</b><span>{FREE_DESC}</span></button>
       <button className="rand" onClick={() => pick(list[Math.floor(Math.random() * list.length)])}><b>무작위로 시작</b></button>
     </div>
     <div className="sb"><button className="btn" onClick={closeSheet}>취소</button></div>
@@ -59,6 +65,7 @@ export default function StoryPage({id}){
       <div className="sec-h"><b>시작 시나리오 {opens.length}개</b>{opens.length > 1 && <button onClick={() => start(opens[Math.floor(Math.random() * opens.length)])}>무작위로 시작</button>}</div>
       <div className="scen">
         {opens.map((g, i) => <button key={i} onClick={() => start(g)}><b>{g.title || `시작 ${i + 1}`}</b><span>{preview(g.setup || g.text) || '빈 장면으로 시작'}</span><em>이걸로 시작 ›</em></button>)}
+        <button onClick={() => start(FREE)}><b>{FREE.title}</b><span>{FREE_DESC}</span><em>이걸로 시작 ›</em></button>
         <button className="gen" disabled={making} onClick={make}>{making ? 'AI가 시나리오 3개를 쓰는 중… (1분쯤)' : '+ AI로 시작 시나리오 3개 만들기'}</button>
       </div>
       {cast.length > 0 && <>

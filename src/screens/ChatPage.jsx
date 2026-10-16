@@ -111,6 +111,8 @@ export default function ChatPage({id}){
   const lastAI = c.messages.map(m => m.role).lastIndexOf('assistant');
   const log = c.messages.map((m, i) => {
     if (m.role === 'assistant') turn++;
+    // 자유 시작 지시는 화면에 그리지 않는다
+    if (m.start) return null;
     const streaming = busy && m.role === 'assistant' && i === c.messages.length - 1;
     const t = streaming ? run.text : m.text;
     let body;

@@ -4,7 +4,7 @@ import { S, notify, commit, save, toast, go } from './store';
 import { LENGTHS } from './constants';
 import { storyOf, personaOf, fill, plain } from './helpers';
 import { callClaude, track, usingProxy } from './api';
-import { buildSystem, buildMessages } from './prompt';
+import { buildSystem, buildMessages, FREE_START } from './prompt';
 
 export const run = { busy:false, abort:null, chatId:null, text:'', startedAt:0 };
 export const ADULT_RE = /\n?[ \t]*\[\[\s*19\s*\]\][ \t]*\s*$/;
@@ -38,6 +38,8 @@ export async function generate(c){
 // 성공하면 true, 보낼 게 없거나 단축어가 틀리면 false
 export function send(c, text){
   const t = String(text).trim(); if (!t || run.busy) return false;
+  // 자유 시작의 INFO 창을 못 받았으면 시작 지시는 버리고 내 입력으로 바로 연다
+  if (c.messages[c.messages.length-1]?.start) c.messages.pop();
   // 단축어와 *행동* 표시는 보낼 때 prepareUser 가 풀어 준다(문장 중간, 끝의 /단축어도 인식)
   c.messages.push({role:'user', text:t});
   generate(c);
@@ -52,6 +54,13 @@ export function cont(c){
   c.messages.push({role:'user', text:'', send:CONT_PROMPT, cont:true});
   generate(c);
   return true;
+}
+
+// 자유 시작 : 화면에 안 보이는 시작 지시로 INFO 창만 받아 온다. INFO 창이 없는 스토리는 빈 대화로 둔다
+export function freeStart(c){
+  if (!storyOf(c)?.infoOn) return;
+  c.messages.push({role:'user', text:'', send:FREE_START, cont:true, start:true});
+  generate(c);
 }
 
 // 마지막이 답변이면 지우고 새로, 내 메시지에서 끊겼으면(답변 실패) 그 자리에서 다시 불러온다
