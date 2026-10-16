@@ -192,7 +192,7 @@ export default function ChatPage({id}){
       onTouchStart={e => { pullRef.current.y = !busy && atBottom() ? e.touches[0].clientY : -1; }}
       onTouchMove={e => { const p = pullRef.current; if (p.y < 0) return; const d = p.y - e.touches[0].clientY; setPull(d > 90 ? 2 : d > 20 ? 1 : 0); }}
       onTouchEnd={() => { if (pull === 2) goOn(); pullRef.current.y = -1; setPull(0); }}>
-      <div id="log">{log}{pull > 0 && <div className="pull-hint">{pull === 2 ? '놓으면 이야기가 이어져요' : '더 올리면 이야기가 이어져요'}</div>}<div ref={spRef} aria-hidden="true"/></div></div>
+      <div id="log" className={st.narrColor === 'black' ? 'narr-black' : ''}>{log}{pull > 0 && <div className="pull-hint">{pull === 2 ? '놓으면 이야기가 이어져요' : '더 올리면 이야기가 이어져요'}</div>}<div ref={spRef} aria-hidden="true"/></div></div>
     {menu && <MsgMenu at={menu} items={menu.items} onClose={() => setMenu(null)}/>}
     <div className="dock">
       {far && <button className="jump" aria-label="맨 아래로" onClick={() => { const sc = scRef.current; sc.scrollTo({top:sc.scrollHeight - (spRef.current?.offsetHeight || 0) - sc.clientHeight + 40, behavior:'smooth'}); }}><Icon n="chev"/></button>}

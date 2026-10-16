@@ -34,7 +34,7 @@ function InfoHead({s}){
 // 선 사이 글자형 상태창 : 크랙 순애남처럼 T3 한 줄, 그 아래 상태 줄을 검은 글자로만 보여준다
 function InfoPlain({body, turn}){
   const lines = body.trim().split('\n').map(l => l.trim()).filter(Boolean);
-  const hasT = /^\s*[T𝖳𝗧]\s?\d/.test(lines[0] || '');
+  const hasT = /^[\s┌├│]*[T𝖳𝗧]\s?\d/u.test(lines[0] || '');
   return <div className="info-plain">{turn && !hasT ? <div>T{turn}</div> : null}{lines.map((l, i) => <div key={i}>{l.replace(/\s*[|｜︱]\s*/g, ' | ')}</div>)}</div>;
 }
 function Info({body, turn, plain}){

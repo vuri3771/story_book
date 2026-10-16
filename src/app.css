@@ -346,3 +346,7 @@
 :root[data-theme="dark"] #log .m .dgroup .tr{color:var(--narr)}
 :root[data-theme="dark"] #log .info-plain{color:var(--text);border-color:var(--line)}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) #log .m .dgroup .tr{color:var(--narr)} :root:not([data-theme="light"]) #log .info-plain{color:var(--text);border-color:var(--line)} }
+/* 서술도 검정으로 쓰는 스토리(크랙 소꿉친구) */
+#log.narr-black .m .narr,#log.narr-black .m i{color:#1a1918}
+:root[data-theme="dark"] #log.narr-black .m .narr,:root[data-theme="dark"] #log.narr-black .m i{color:var(--text)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) #log.narr-black .m .narr,:root:not([data-theme="light"]) #log.narr-black .m i{color:var(--text)} }
