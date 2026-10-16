@@ -92,9 +92,10 @@
 .hscroll{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 8px;scroll-snap-type:x mandatory;scrollbar-width:none}
 .hscroll::-webkit-scrollbar{display:none}
 .hscroll > *{scroll-snap-align:start;flex-shrink:0}
-.ccard{width:250px;border-radius:16px;overflow:hidden;background:var(--surface);text-align:left;display:flex;flex-direction:column}
-.ccard img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--surface2)}
-.ccard .cb{padding:10px 12px 12px}
+.ccard{width:290px;border-radius:16px;overflow:hidden;background:var(--surface);text-align:left;display:flex;flex-direction:row;align-items:stretch}
+/* 표지가 세로로 긴 그림이라 왼쪽에 3:4 로 세우고 얼굴이 있는 위쪽을 보여준다 */
+.ccard img{width:96px;aspect-ratio:3/4;flex-shrink:0;object-fit:cover;object-position:center top;display:block;background:var(--surface2)}
+.ccard .cb{padding:10px 12px 12px;min-width:0;display:flex;flex-direction:column}
 .ccard b{display:block;font-size:15px}
 .ccard span{font-size:12.5px;color:var(--narr);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ccard small{display:block;color:var(--muted);font-size:11.5px;margin-top:6px}

@@ -168,11 +168,7 @@ export default function ChatPage({id}){
     const ctx = e => { e.preventDefault(); if (Date.now() - press.current.fired > 800) openMenu(e.clientX, e.clientY); };
     const toggle = e => { if (Date.now() - press.current.fired < 800) return; if (e.target.closest('button')) return; const n = new Set(openActs); n.has(i) ? n.delete(i) : n.add(i); setOpenActs(n); };
     // 19금으로 넘어가는 첫 답변에는 경계 표시, 이어지는 19금 답변에는 작은 뱃지
-    let mark = null;
-    if (m.adult){
-      const prevAdult = c.messages.slice(0, i).reverse().find(x => x.role === 'assistant')?.adult;
-      mark = prevAdult ? <div className="adult-mark"><Badge19/></div> : <div className="adult-mark start"><Badge19/><span>여기부터 19금 장면</span></div>;
-    }
+    const mark = null;
     return <div key={i} data-i={i} className={'m ' + m.role + (m.cont ? ' cont' : '')} onClick={toggle} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={ctx}>{mark}{body}{acts}</div>;
   });
 

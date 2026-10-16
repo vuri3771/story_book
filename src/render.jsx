@@ -95,7 +95,8 @@ export function renderAI(text, st, turn, scene){
 }
 
 // 19금 뱃지
-export const Badge19 = ({className = ''}) => <span className={'b19 ' + className} aria-label="19세 이상">19</span>;
+// 혼자 쓰는 앱이라 19 표시는 그리지 않는다. 부르는 곳은 그대로 둬도 아무것도 안 나온다
+export const Badge19 = () => null;
 
 // 내 메시지 : /단축어는 파란 굵은 글씨, OOC 는 작은 회색 글씨로 구분한다
 function UserLine({s}){
