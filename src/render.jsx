@@ -92,9 +92,9 @@ export const Badge19 = ({className = ''}) => <span className={'b19 ' + className
 
 // 내 메시지 : /단축어는 파란 굵은 글씨, OOC 는 작은 회색 글씨로 구분한다
 function UserLine({s}){
-  return s.split(/((?:^|\s)\/[^\s/]+|\(\s*O[OC]C\s*[:：][^)]*\))/gi).filter(Boolean).map((x, i) => {
+  return s.split(/((?:^|\s)\/[^\s/]+|[(\[]\s*O[OC]C[^)\]]*[)\]])/gi).filter(Boolean).map((x, i) => {
     if (/^\s*\/[^\s/]+$/.test(x)) return <Fragment key={i}>{x.match(/^\s*/)[0]}<b className="sc">{x.trim()}</b></Fragment>;
-    if (/^\(\s*O[OC]C/i.test(x)) return <span key={i} className="ooc">{x}</span>;
+    if (/^[(\[]\s*O[OC]C/i.test(x)) return <span key={i} className="ooc">{x}</span>;
     return <Inline key={i} s={x}/>;
   });
 }

@@ -26,7 +26,7 @@ export function buildSystem(c){
     + '- 마크다운 제목, 목록, 굵은 글씨는 쓰지 않는다.\n'
     + '- {{user}}의 입력에서 [행동·상황] 표시가 붙은 부분(원래 *별표* 안)은 {{user}}의 행동이나 상황 설명이다. 절대 {{user}}의 대사로 바꾸거나 따옴표 안에 넣지 않고, 서술로만 반영한다. 스토리 규칙에 따라 {{user}}의 입력을 옮겨 적을 때도 이 부분은 대사가 아니라 서술 문장으로 적는다.\n'
     + "- 표시가 없는 부분은 대사다. 다만 '~한다', '~본다'처럼 서술형으로 끝나는 문장은 별표가 없어도 행동으로 본다. **굵게** 쓴 말은 {{user}}가 강조한 부분이다.\n"
-    + '- [OOC] 표시가 붙은 부분은 이야기 밖에서 작가에게 하는 지시다. 이야기 속에 등장시키지 말고 그대로 따른다. [단축어] 표시가 붙은 지시도 그대로 따른다.\n'
+    + '- [OOC] 표시가 붙은 부분은 이야기 밖에서 작가에게 하는 지시다. 이야기 속에 등장시키거나 인물이 언급하지 않고, 반드시 그대로 따른다. [OOC]와 [단축어] 지시는 진행 원칙, 스토리 규칙, 문체를 포함한 모든 규칙보다 우선한다.\n'
     + '- ' + L.rule + (c.minChars > 0 ? ` 응답 본문(INFO 창 제외)은 공백 포함 최소 ${c.minChars}자 이상 쓴다.` : '') + ' {{user}}가 반응할 여지를 남기며 끝낸다.\n'
     + '- 이전 줄거리 요약과 장기 기억의 사실관계를 반드시 지킨다.';
   if (c.noImpersonate !== false) t += '\n- {{user}}의 대사, 행동, 생각, 감정은 절대 대신 쓰지 않는다.';
@@ -81,21 +81,27 @@ export function findShortcut(name, c){
 
 // 화면에 보이는 입력을 모델이 헷갈리지 않는 형태로 바꾼다
 // *행동* → [행동·상황], (OOC: ...) / OOC: ... → [OOC], /단축어 → 맨 끝에 [단축어] 지시로
+// /단축어 앞의 글은 이번 턴의 입력, 뒤의 글은 그 단축어의 인자로 본다(/시점전환 애셔, /스킵 다음 날 아침)
+// OOC 는 (OOC: ..) [OOC: ..] 줄 앞 OOC: 를 모두 받고, 오타 OCC 도 받는다. 맨 앞에 최우선 지시로 둔다
+const OOC_IN = /[(\[]\s*O[OC]C\s*[:：)\]]?\s*([^)\]]*)[)\]]/gi, OOC_LINE = /^\s*O[OC]C\s*[:：)\-]\s*(.+)$/i;
 export function prepareUser(text, c){
   let t = String(text || '');
-  const scs = [];
-  t = t.replace(SC_RE, (all, sp, name) => { scs.push(name); return sp; }).trim();
   const ooc = [];
-  t = t.replace(/\(\s*O[OC]C\s*[:：]\s*([^)]*)\)/gi, (a, x) => { ooc.push(x.trim()); return ''; });
-  t = t.split('\n').filter(l => { const m = l.match(/^\s*O[OC]C\s*[:：]\s*(.+)$/i); if (m){ ooc.push(m[1].trim()); return false; } return true; }).join('\n');
+  t = t.replace(OOC_IN, (a, x) => { if (x.trim()) ooc.push(x.trim()); return ''; });
+  t = t.split('\n').filter(l => { const m = l.match(OOC_LINE); if (m){ ooc.push(m[1].trim()); return false; } return true; }).join('\n');
+  // 첫 단축어에서 자른다
+  let sc = null, arg = '';
+  const m = new RegExp(SC_RE.source).exec(t);
+  if (m){ sc = m[2]; arg = t.slice(m.index + m[0].length).trim(); t = t.slice(0, m.index).trim(); }
   t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, (a, pre, x) => `${pre}[행동·상황: ${x.trim()}]`).trim();
-  let out = t;
-  for (const o of ooc) out += (out ? '\n' : '') + `[OOC: ${o}]`;
-  for (const name of scs){
-    const sc = findShortcut(name, c);
-    out += (out ? '\n\n' : '') + (sc
-      ? `[단축어 /${sc.name} 실행${t ? ' · 위 입력이 이 단축어의 내용이다' : ''}]\n${sc.body}`
-      : `[단축어 /${name}] 사용자가 /${name} 명령을 썼다. 등록된 단축어는 아니니 이름의 뜻을 짐작해 이번 응답에 반영한다.`);
+  const parts = [];
+  if (ooc.length) parts.push('[OOC · 작가 지시, 이번 응답에서 반드시 따른다. 다른 모든 규칙보다 우선한다]\n' + ooc.map(o => '- ' + o).join('\n'));
+  if (t) parts.push(t);
+  if (sc){
+    const s = findShortcut(sc, c);
+    parts.push(s
+      ? `[단축어 /${s.name} 실행${arg ? ' · 입력: ' + arg : ''} · 아래 지시를 반드시 따른다]\n${fill(s.body, c)}`
+      : `[단축어 /${sc}${arg ? ' · 입력: ' + arg : ''}] 사용자가 /${sc} 명령을 썼다. 등록된 단축어는 아니니 이름의 뜻을 짐작해 이번 응답에 반드시 반영한다.`);
   }
-  return out || String(text || '');
+  return parts.join('\n\n') || String(text || '');
 }

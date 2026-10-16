@@ -75,6 +75,10 @@ export function toast(msg){ ui.toast = msg; notify(); clearTimeout(toastTimer); 
 
 export async function boot(){
   const d = await load();
-  if (d){ S = Object.assign(defaultState(), d); S.settings = Object.assign(defaultState().settings, d.settings); if (!S.shortcuts) S.shortcuts = DEFAULT_SHORTCUTS.map(x => ({...x})); delete S.wallet; }
+  if (d){ S = Object.assign(defaultState(), d); S.settings = Object.assign(defaultState().settings, d.settings); if (!S.shortcuts) S.shortcuts = DEFAULT_SHORTCUTS.map(x => ({...x})); delete S.wallet;
+    // 나중에 기본 단축어에 추가된 것은 한 번만 넣어 준다(지운 뒤 다시 생기지 않게 본 것을 기록)
+    const seen = S.settings.seenSc ||= ['sc_diary', 'sc_inner', 'sc_sum', 'sc_skip', 'sc_go'];
+    for (const x of DEFAULT_SHORTCUTS) if (!seen.includes(x.id)){ seen.push(x.id); if (!S.shortcuts.some(y => y.name === x.name)) S.shortcuts.push({...x}); }
+  }
   notify();
 }
