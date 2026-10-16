@@ -357,3 +357,10 @@
 /* 단축어 상단 고정 핀 : 꺼져 있으면 흐리게 */
 .sci .pin{flex:none;font-size:14px;opacity:.25;filter:grayscale(1);padding:4px}
 .sci .pin.on{opacity:1;filter:none}
+
+/* 설정 탭과 묶음 제목 */
+.set-tabs{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;border-bottom:1px solid var(--line);flex:none}
+.set-tabs button{flex:none;padding:7px 14px;border-radius:999px;background:var(--surface);color:var(--narr);font-size:14px;white-space:nowrap}
+.set-tabs button.on{background:var(--text);color:var(--bg)}
+.set-h{font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 2px;letter-spacing:.02em}
+.set-h:first-child{margin-top:4px}

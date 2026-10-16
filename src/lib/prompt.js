@@ -68,6 +68,7 @@ export function buildSystem(c){
   t += PACE;
   const blocks = [{type:'text', text: fill(t, c)}];
   let dyn = '';
+  if (S.settings.commonNote?.trim()) dyn += '[공통 유저노트 · 모든 대화에 적용]\n' + S.settings.commonNote.trim() + '\n\n';
   if (c.notes) dyn += '[유저노트 · 이 대화에서 항상 기억할 것]\n' + c.notes + '\n\n';
   if (c.memory) dyn += '[요약 메모리 · 지금까지의 줄거리]\n' + c.memory;
   if (dyn) blocks.push({type:'text', text: fill(dyn.trim(), c)});

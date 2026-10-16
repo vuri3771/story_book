@@ -77,41 +77,56 @@ export function TextLook(){
 export function LookSheet(){ return <Sheet><h3>글꼴, 글자 모양</h3><div className="form"><TextLook/></div><div className="sb"><button className="btn dark" onClick={closeSheet}>닫기</button></div></Sheet>; }
 
 export function openSettings(){ openSheet(<Sheet><h3>설정</h3><SettingsForm inSheet/></Sheet>); }
-export function SettingsForm({inSheet}){
+// sec : 설정 화면의 탭(화면, 모델, 대화, 프로필, 계정). 없으면(시트) 전부 보여 준다
+export function SettingsForm({inSheet, sec}){
+  const on = k => !sec || sec === k;
   const s = S.settings;
   const [f, setF] = useState({apiKey:s.apiKey, naiKey:s.naiKey || '', naiModel:s.naiModel || 'glm-4-6', naiBase:s.naiBase || NAI_BASE, naiTranslate:s.naiTranslate !== false,
-    model:s.model, helperModel:s.helperModel, keepRecent:s.keepRecent, summarizeEvery:s.summarizeEvery, krw:s.krw});
+    model:s.model, helperModel:s.helperModel, keepRecent:s.keepRecent, summarizeEvery:s.summarizeEvery, krw:s.krw, commonNote:s.commonNote || ''});
   const set = k => e => setF({...f, [k]: e.target.value});
   const saveIt = () => {
     Object.assign(s, {apiKey:f.apiKey.trim(), naiKey:f.naiKey.trim(), naiModel:f.naiModel.trim() || 'glm-4-6', naiBase:f.naiBase.trim() || NAI_BASE, naiTranslate:f.naiTranslate,
-      model:f.model, helperModel:f.helperModel, keepRecent:Math.max(6, +f.keepRecent || 30), summarizeEvery:Math.max(4, +f.summarizeEvery || 20), krw:+f.krw || 1400});
+      model:f.model, helperModel:f.helperModel, keepRecent:Math.max(6, +f.keepRecent || 30), summarizeEvery:Math.max(4, +f.summarizeEvery || 20), krw:+f.krw || 1400, commonNote:f.commonNote});
     commit();
     if (inSheet) closeSheet(); else toast('저장했어요.');
   };
   return (
     <>
       <div className="form">
-        <TextLook/>
-        {usingProxy
-          ? <div className="note" style={{padding:0}}>Claude 키는 서버에 있어서 여기서 넣지 않아도 돼요.</div>
-          : <><label>Anthropic API 키<small>이 브라우저에만 저장돼요</small></label><input type="password" value={f.apiKey} onChange={set('apiKey')} placeholder="sk-ant-..." autoComplete="off"/></>}
-        <label>NovelAI 키<small>NovelAI 계정 설정의 Persistent API Token</small></label><input type="password" value={f.naiKey} onChange={set('naiKey')} placeholder="pst-..." autoComplete="off"/>
-        <label>NovelAI 모델 ID</label><input value={f.naiModel} onChange={set('naiModel')} placeholder="glm-4-6"/>
-        <label>NovelAI 주소<small>보통은 그대로 두세요</small></label><input value={f.naiBase} onChange={set('naiBase')} placeholder={NAI_BASE}/>
-        <label>NovelAI 번역<small>영어로 주고받고 보조 모델이 한국어로 옮겨요</small></label><div className="seg"><button className={f.naiTranslate ? 'on' : ''} onClick={() => setF({...f, naiTranslate:true})}>켜기</button><button className={f.naiTranslate ? '' : 'on'} onClick={() => setF({...f, naiTranslate:false})}>끄기</button></div>
-        <label>새 대화 기본 모델</label><select value={f.model} onChange={set('model')}>{MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-        <label>보조 모델<small>요약 메모리, 추천 답변에 써요</small></label><select value={f.helperModel} onChange={set('helperModel')}>{MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-        <label>원문 그대로 보낼 최근 메시지 수</label><input type="number" min="6" value={f.keepRecent} onChange={set('keepRecent')}/>
-        <label>이만큼 더 쌓이면 오래된 부분 요약</label><input type="number" min="4" value={f.summarizeEvery} onChange={set('summarizeEvery')}/>
-        <label>환율 (원/달러)</label><input type="number" value={f.krw} onChange={set('krw')}/>
-        <div className="note" style={{padding:'8px 0 0'}}>지금까지 쓴 금액 ≈ {won(S.usage.krw || 0)}원 (예상치)</div>
-        <label>백업</label>
-        <div className="seg"><button onClick={exportAll}>내보내기</button><button onClick={importFile}>불러오기</button></div>
-        {remoteOn && <AccountCode/>}
+        {on('look') && <><div className="set-h">화면</div><TextLook/></>}
+        {on('model') && <>
+          <div className="set-h">모델</div>
+          {usingProxy
+            ? <div className="note" style={{padding:0}}>Claude 키는 서버에 있어서 여기서 넣지 않아도 돼요.</div>
+            : <><label>Anthropic API 키<small>이 브라우저에만 저장돼요</small></label><input type="password" value={f.apiKey} onChange={set('apiKey')} placeholder="sk-ant-..." autoComplete="off"/></>}
+          <label>새 대화 기본 모델</label><select value={f.model} onChange={set('model')}>{MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+          <label>보조 모델<small>요약 메모리, 추천 답변, NovelAI 번역에 써요</small></label><select value={f.helperModel} onChange={set('helperModel')}>{MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+          <div className="set-h">NovelAI</div>
+          <label>NovelAI 키<small>NovelAI 계정 설정의 Persistent API Token</small></label><input type="password" value={f.naiKey} onChange={set('naiKey')} placeholder="pst-..." autoComplete="off"/>
+          <label>NovelAI 모델 ID</label><input value={f.naiModel} onChange={set('naiModel')} placeholder="glm-4-6"/>
+          <label>NovelAI 주소<small>보통은 그대로 두세요</small></label><input value={f.naiBase} onChange={set('naiBase')} placeholder={NAI_BASE}/>
+          <label>NovelAI 번역<small>영어로 주고받고 보조 모델이 한국어로 옮겨요</small></label><div className="seg"><button className={f.naiTranslate ? 'on' : ''} onClick={() => setF({...f, naiTranslate:true})}>켜기</button><button className={f.naiTranslate ? '' : 'on'} onClick={() => setF({...f, naiTranslate:false})}>끄기</button></div>
+        </>}
+        {on('chat') && <>
+          <div className="set-h">대화</div>
+          <label>공통 유저노트<small>모든 대화에 자동으로 함께 들어가요. 대화별 유저노트에 양식으로 불러올 수도 있어요</small></label>
+          <textarea rows="8" value={f.commonNote} onChange={set('commonNote')} placeholder={"예)\n- 대사는 짧게, 서술은 길고 자세하게\n- {{user}}의 호칭 : \n- 지금 관계 : \n- 꼭 지킬 설정 : "}/>
+          <label>원문 그대로 보낼 최근 메시지 수</label><input type="number" min="6" value={f.keepRecent} onChange={set('keepRecent')}/>
+          <label>이만큼 더 쌓이면 오래된 부분 요약</label><input type="number" min="4" value={f.summarizeEvery} onChange={set('summarizeEvery')}/>
+        </>}
+        {on('profile') && <><div className="set-h">대화 프로필</div><PersonaList/></>}
+        {on('account') && <>
+          <div className="set-h">계정과 백업</div>
+          <label>환율 (원/달러)</label><input type="number" value={f.krw} onChange={set('krw')}/>
+          <div className="note" style={{padding:'8px 0 0'}}>지금까지 쓴 금액 ≈ {won(S.usage.krw || 0)}원 (예상치)</div>
+          <label>백업</label>
+          <div className="seg"><button onClick={exportAll}>내보내기</button><button onClick={importFile}>불러오기</button></div>
+          {remoteOn && <AccountCode/>}
+        </>}
       </div>
       {inSheet
         ? <div className="sb"><button className="btn" onClick={closeSheet}>취소</button><button className="btn dark" onClick={saveIt}>저장</button></div>
-        : <div style={{padding:'20px 20px 28px'}}><button className="btn dark" style={{width:'100%'}} onClick={saveIt}>저장</button></div>}
+        : sec !== 'profile' && <div style={{padding:'20px 20px 28px'}}><button className="btn dark" style={{width:'100%'}} onClick={saveIt}>저장</button></div>}
     </>
   );
 }
@@ -190,7 +205,8 @@ export function GuideSheet({chat}){
 
 export function NotesSheet({chat}){
   const [v, setV] = useState(chat.notes || '');
-  return <Sheet ok="저장" onOk={() => { chat.notes = v; commit(); }}><h3>유저노트</h3><div className="note">이 대화에서 모델이 항상 기억해야 할 내용이에요. 관계, 호칭, 지금까지 있었던 일, 지켜야 할 설정 등을 적어두세요.</div><div className="form"><textarea rows="10" value={v} onChange={e => setV(e.target.value)} placeholder={"- 하윤은 {{user}}를 '단골 씨'라고 부른다\n- 둘은 지난주에 우산을 같이 썼다"}/></div></Sheet>;
+  return <Sheet ok="저장" onOk={() => { chat.notes = v; commit(); }}><h3>유저노트</h3><div className="note">이 대화에서 모델이 항상 기억해야 할 내용이에요. 관계, 호칭, 지금까지 있었던 일, 지켜야 할 설정 등을 적어두세요.</div><div className="form"><textarea rows="10" value={v} onChange={e => setV(e.target.value)} placeholder={"- 하윤은 {{user}}를 '단골 씨'라고 부른다\n- 둘은 지난주에 우산을 같이 썼다"}/>
+    {S.settings.commonNote?.trim() ? <><div className="note" style={{padding:0}}>설정의 공통 유저노트도 모든 대화에 함께 들어가고 있어요.</div><button className="linkbtn" onClick={() => setV(v.trim() ? v.trimEnd() + '\n\n' + S.settings.commonNote : S.settings.commonNote)}>공통 유저노트를 양식으로 불러오기</button></> : null}</div></Sheet>;
 }
 
 export function MemorySheet({chat}){
@@ -228,6 +244,19 @@ export function LengthSheet({chat}){
   );
 }
 
+// 설정 화면의 대화 프로필 목록 : 고르기 없이 만들고 고치기만 한다
+function PersonaList(){
+  useStore();
+  return <>
+    <div className="note" style={{padding:0}}>대화에서 내가 연기할 인물이에요. 대화방 메뉴의 "대화 프로필"에서 골라 써요.</div>
+    {S.personas.map(p => <div key={p.id} className="opt">
+      <button className="mid" style={{textAlign:'left'}} onClick={() => openSheet(<EditPersonaSheet id={p.id}/>)}><b>{p.name}</b><span className="d">{p.desc || '설정 없음'}</span></button>
+      <button className="pen" aria-label="편집" style={{width:34, color:'var(--narr)'}} onClick={() => openSheet(<EditPersonaSheet id={p.id}/>)}><Icon n="pen"/></button>
+    </div>)}
+    <button className="linkbtn" onClick={() => openSheet(<EditPersonaSheet id={null}/>)}>+ 새 프로필</button>
+  </>;
+}
+
 export function ProfileSheet({chat}){
   useStore();
   return (
@@ -254,7 +283,7 @@ function EditPersonaSheet({chat, id}){
       const p = orig || {id:uid()};
       p.name = name.trim() || '나'; p.desc = desc;
       if (!orig){ S.personas.push(p); if (chat) chat.personaId = p.id; }
-      commit(); openSheet(<ProfileSheet chat={chat}/>); return false;
+      commit(); if (chat){ openSheet(<ProfileSheet chat={chat}/>); return false; }
     }}>
       <h3>{orig ? '프로필 편집' : '새 프로필'}</h3>
       <div className="form">
@@ -263,7 +292,7 @@ function EditPersonaSheet({chat, id}){
         {orig && S.personas.length > 1 && <button className="linkbtn danger" onClick={() => {
           S.personas = S.personas.filter(x => x.id !== orig.id);
           S.chats.forEach(ch => { if (ch.personaId === orig.id) ch.personaId = S.personas[0].id; });
-          commit(); openSheet(<ProfileSheet chat={chat}/>);
+          commit(); if (chat) openSheet(<ProfileSheet chat={chat}/>); else closeSheet();
         }}>프로필 삭제</button>}
       </div>
     </Sheet>
