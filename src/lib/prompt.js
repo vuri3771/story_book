@@ -63,7 +63,7 @@ export function buildSystem(c){
   if (c.freeStart) t += '\n\n[자유 시작 · 시작 시나리오 없음]\n정해진 시작 장면이 없다. {{user}}의 첫 입력(특히 *행동·상황*)이 이야기의 출발점이다. 장소, 시간, 인물들과의 관계, 첫 만남인지 아는 사이인지를 그 입력에 맞춰 정하고, 그 순간에서 장면을 풍부하게 연다. INFO 창도 그 입력에 맞게 다시 채운다.';
   if (c.setup?.trim()) t +='\n\n[이 대화의 시작 시나리오' + (c.openingTitle ? ': ' + c.openingTitle : '') + ' · 프로필이나 세계관과 어긋나면 이 설정을 따른다]\n' + c.setup.trim();
   const tags = [...(st.images||[]).filter(i => i.tag).map(i => i.tag), ...st.characters.filter(x => x.image && x.name).map(x => x.name)];
-  if (tags.length) t += '\n\n[이미지]\n장면에 딱 맞을 때만 가끔 한 줄에 [[이미지:이름]] 을 넣으면 그 이미지가 보인다. 쓸 수 있는 이름: ' + tags.join(', ');
+  if (tags.length) t += '\n\n[이미지]\n장면에 딱 맞을 때만 가끔 한 줄에 [[이미지:이름]] 을 넣으면 그 이미지가 보인다. 이름에 19 나 🔞 가 붙은 이미지는 성적인 장면에서만 쓰고, 평소 장면에는 붙지 않은 이미지를 쓴다. 쓸 수 있는 이름: ' + tags.join(', ');
   if (st.memory) t += '\n\n[장기 기억 · 항상 지킬 사실]\n' + st.memory;
   t += PACE;
   const blocks = [{type:'text', text: fill(t, c)}];
