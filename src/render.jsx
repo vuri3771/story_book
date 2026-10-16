@@ -115,7 +115,7 @@ export function renderAI(text, st, turn, scene){
       flush();
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
-      const d = line.match(/^([^|│"“*\[]{1,24}?)\s*[|｜│]\s*(.+)$/);
+      const d = line.match(/^([^|│┃"“*\[]{1,24}?)\s*[|｜│┃]\s*(.+)$/);
       if (d){ const av = avatarOf(st, d[1]); add(<Fragment key={k++}>{av && <Ava ch={av} className="ava"/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></Fragment>, true); continue; }
       out.push(<p key={k++} className="narr"><Inline s={line}/></p>);
     }

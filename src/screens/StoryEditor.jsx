@@ -96,6 +96,7 @@ export default function StoryEditor({id}){
       <div className="fl" style={{marginTop:18}}>매 답변 INFO 창<button className={'toggle ' + (d.infoOn ? 'on' : '')} aria-label="INFO 창 사용" onClick={() => { d.infoOn = !d.infoOn; if (d.infoOn && !d.info) d.info = DEFAULT_INFO; bump(); }}/></div>
       {d.infoOn && f('info', 'INFO 창 형식', '', 4, '모델이 이 형식을 채워 매 답변 위에 보여줘요')}
       {d.infoOn && <div className="fl" style={{marginTop:10}}>INFO 창 모양<select style={{width:'auto'}} value={d.infoStyle || 'box'} onChange={e => { d.infoStyle = e.target.value; bump(); }}><option value="box">어두운 상자</option><option value="plain">선 사이 글자</option></select></div>}
+      {d.infoOn && <div className="fl" style={{marginTop:10}}>INFO 창 위치<select style={{width:'auto'}} value={d.infoAt || 'start'} onChange={e => { d.infoAt = e.target.value; bump(); }}><option value="start">답변 맨 위</option><option value="end">답변 맨 끝</option></select></div>}
       <div className="fl" style={{marginTop:10}}>서술 글자색<select style={{width:'auto'}} value={d.narrColor || 'gray'} onChange={e => { d.narrColor = e.target.value; bump(); }}><option value="gray">회색 (영건즈, 순애남)</option><option value="black">검정 (소꿉친구)</option></select></div>
       {f('memory', '장기 기억', '한 줄에 하나씩. 이 스토리의 모든 대화에 항상 적용돼요.', 4)}
       <label>이미지 보관함<small>{d.images.length}/50</small></label>
