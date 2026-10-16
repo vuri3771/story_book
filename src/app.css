@@ -303,3 +303,6 @@
 /* 내 메시지 위아래 여백 : 앞뒤 답변과 확실히 떨어져 보이게 */
 #log .m.user:not(.cont){margin:30px 0 32px;padding:20px 0 12px}
 @media (max-width:899px){ #log .m.user:not(.cont){margin:24px 0 26px;padding:16px 0 8px} }
+
+/* ⸺ 이름 / ⌜ 이름 ⌟ 줄은 바로 아래 대사와 붙여 보이게 */
+.m .who-line{margin-bottom:2px}

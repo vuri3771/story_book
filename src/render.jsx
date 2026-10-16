@@ -5,7 +5,8 @@ import { Fragment } from 'react';
 // **굵게** : 굵은 글씨 / *행동* : 상황 설명(회색) / "대사"
 export function Inline({s}){
   const t = String(s ?? '');
-  return t.split(/(\*\*[^*]+\*\*|\*[^*]+\*|"[^"]*"|“[^”]*”)/g).filter(Boolean).map((x, i) => {
+  return t.split(/(\*\*[^*]+\*\*|\*[^*]+\*|"[^"]*"|“[^”]*”|「[^」]*」|『[^』]*』)/g).filter(Boolean).map((x, i) => {
+    if (/^[「『]/.test(x)) return <span key={i} className="q">{x}</span>;
     if (x.length > 4 && x.startsWith('**') && x.endsWith('**')) return <b key={i}>{x.slice(2, -2)}</b>;
     if (x.length > 2 && x[0] === '*' && x.endsWith('*')) return <i key={i}>{x.slice(1, -1)}</i>;
     if (x.length > 1 && /^["“]/.test(x) && /["”]$/.test(x)) return <span key={i} className="q">{x}</span>;
@@ -74,8 +75,14 @@ export function renderAI(text, st, turn, scene){
       else out.push(<div key={k++} className="cblock">{body.trim()}</div>);
       continue;
     }
+    // 대사는 검은색, 서술만 회색 : 이름 | "대사" 말고도 ⸺ 이름 / ⌜ 이름 ⌟ 다음 줄의 「대사」, "대사", (번역)도 대사로 본다
+    let afterDlg = false;
     for (const raw of p.split('\n')){
-      const line = raw.trim(); if (!line || /^\[\[\s*19\s*\]\]$/.test(line)) continue;
+      const line = raw.trim(); if (!line){ afterDlg = false; continue; } if (/^\[\[\s*19\s*\]\]$/.test(line)) continue;
+      const who = line.match(/^⸺\s*\**\s*([^*「"“]{1,24}?)\s*\**$/) || line.match(/^⌜\s*([^⌟]{1,24})\s*⌟$/);
+      if (who){ const av = avatarOf(st, who[1].replace(/\s+/g, '')) || avatarOf(st, who[1]); out.push(<p key={k++} className="dlg who-line">{av && <Ava ch={av} className="ava"/>}<span className="who">{who[1]}</span></p>); afterDlg = true; continue; }
+      if (/^\**\s*[「『"“]/.test(line) || (afterDlg && /^\**\s*\(/.test(line))){ out.push(<p key={k++} className="dlg"><Inline s={line}/></p>); afterDlg = true; continue; }
+      afterDlg = false;
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
       const d = line.match(/^([^|"“*\[]{1,24}?)\s*[|｜]\s*(.+)$/);
