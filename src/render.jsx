@@ -33,7 +33,8 @@ function InfoHead({s}){
 }
 // 선 사이 글자형 상태창 : 크랙 순애남처럼 T3 한 줄, 그 아래 상태 줄을 검은 글자로만 보여준다
 // 크랙 소꿉친구2처럼 ✧ 𝘛𝘜𝘙𝘕 79 ⋄ … 한 줄로 쓰는 모양도 받는다. 모델이 짐작한 턴 숫자는 실제 턴으로 바꾼다
-const T_RE = /^([\s┌├│✧]*)(𝘛𝘜𝘙𝘕|TURN|[T𝖳𝗧𝘛])(\s?)\d+/u;
+// 크랙 업어키웠어처럼 🎴턴12 로 시작하는 줄도 턴 표시로 본다
+const T_RE = /^([\s┌├│✧🎴]*)(𝘛𝘜𝘙𝘕|TURN|턴|[T𝖳𝗧𝘛])(\s?)\d+/u;
 function InfoPlain({body, turn}){
   let lines = body.trim().split('\n').map(l => l.trim()).filter(Boolean);
   const hasT = T_RE.test(lines[0] || '');
@@ -43,10 +44,12 @@ function InfoPlain({body, turn}){
 function Info({body, turn, plain}){
   if (plain) return <InfoPlain body={body} turn={turn}/>;
   const lines = body.trim().split('\n');
+  const hasT = T_RE.test(lines[0] || '');
+  if (hasT && turn) lines[0] = lines[0].replace(T_RE, `$1$2$3${turn}`);
   return <div className="info"><div className="ih">INFO</div><div className="ib">{lines.map((ln, i) => {
     const parts = ln.split(/\s*[|｜]\s*/);
     let c;
-    if (i === 0) c = <>{turn && !/^\s*[T𝗧]\d/.test(ln) ? <><b>T</b><span className="a">{turn}</span> | </> : null}{parts.map((p, j) => <Fragment key={j}>{j > 0 && ' | '}<InfoHead s={p}/></Fragment>)}</>;
+    if (i === 0) c = <>{turn && !hasT ?<><b>T</b><span className="a">{turn}</span> | </> : null}{parts.map((p, j) => <Fragment key={j}>{j > 0 && ' | '}<InfoHead s={p}/></Fragment>)}</>;
     else if (parts.length > 1) c = <><span className="n">{parts[0]}</span> | {parts.slice(1).join(' | ')}</>;
     else c = ln;
     // 크랙처럼 첫 줄과 인물 목록 사이를 한 줄 띄운다
@@ -115,7 +118,7 @@ export function renderAI(text, st, turn, scene){
       flush();
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
-      const d = line.match(/^([^|│┃"“*\[]{1,24}?)\s*[|｜│┃]\s*(.+)$/);
+      const d = line.match(/^([^|│┃ㅣ"“*\[]{1,24}?)\s+ㅣ\s*(["“].+)$/) || line.match(/^([^|│┃"“*\[]{1,24}?)\s*[|｜│┃]\s*(.+)$/);
       if (d){ const av = avatarOf(st, d[1]); add(<Fragment key={k++}>{av && <Ava ch={av} className="ava"/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></Fragment>, true); continue; }
       out.push(<p key={k++} className="narr"><Inline s={line}/></p>);
     }
