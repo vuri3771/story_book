@@ -88,20 +88,27 @@ export function renderAI(text, st, turn, scene){
       else out.push(<div key={k++} className="cblock">{body.trim()}</div>);
       continue;
     }
-    // 대사는 검은색, 서술만 회색 : 이름 | "대사" 말고도 ⸺ 이름 / ⌜ 이름 ⌟ 다음 줄의 「대사」, "대사", (번역)도 대사로 본다
-    let afterDlg = false;
-    for (const raw of p.split('\n')){
-      const line = raw.trim(); if (!line){ afterDlg = false; continue; } if (/^\[\[\s*19\s*\]\]$/.test(line)) continue;
-      const who = line.match(/^⸺\s*\**\s*([^*「"“]{1,24}?)\s*\**$/) || line.match(/^⌜\s*([^⌟]{1,24})\s*⌟$/);
-      if (who){ const av = avatarOf(st, who[1].replace(/\s+/g, '')) || avatarOf(st, who[1]); out.push(<p key={k++} className="dlg who-line">{av && <Ava ch={av} className="ava"/>}<span className="who">{who[1]}</span></p>); afterDlg = true; continue; }
-      if (/^\**\s*[「『"“]/.test(line) || (afterDlg && /^\**\s*\(/.test(line))){ out.push(<p key={k++} className="dlg"><Inline s={line}/></p>); afterDlg = true; continue; }
-      afterDlg = false;
+    // 대사는 검은색, 서술만 회색 : 이름 | "대사" 말고도 ⸺ 이름 / ⌜ 이름 ⌟ 다음 줄의 「대사」, "대사", (발음), (번역)도 대사로 본다
+    // 이름 줄과 그 대사, 발음, 번역은 한 묶음이라 문단 간격 없이 한 덩어리로 붙여 그린다
+    const names = new Set((st?.characters || []).map(c => c.name?.trim()).filter(Boolean));
+    let grp = null;
+    const flush = () => { if (grp){ out.push(<p key={k++} className="dlg dgroup">{grp}</p>); grp = null; } };
+    const add = (node, first) => { if (!grp) grp = []; else if (!first) grp.push(<br key={'b' + k++}/>); grp.push(node); };
+    // 「 나 」 만 따로 한 줄에 쓴 경우 앞뒤 줄과 붙인다
+    const body = p.replace(/([「『])[ \t]*\n+[ \t]*/g, '$1').replace(/[ \t]*\n+[ \t]*([」』])/g, '$1');
+    for (const raw of body.split('\n')){
+      const line = raw.trim(); if (!line) continue; if (/^\[\[\s*19\s*\]\]$/.test(line)) continue;
+      const who = line.match(/^⸺\s*\**\s*([^*「"“]{1,24}?)\s*\**$/) || line.match(/^⌜\s*([^⌟]{1,24})\s*⌟$/) || (names.has(line.replace(/\*/g, '').trim()) && [line, line.replace(/\*/g, '').trim()]);
+      if (who){ flush(); const av = avatarOf(st, who[1].replace(/\s+/g, '')) || avatarOf(st, who[1]); add(<span key={k++} className="who-line">{av && <Ava ch={av} className="ava"/>}<span className="who">{who[1]}</span></span>, true); continue; }
+      if (/^\**\s*[「『"“]/.test(line) || (grp && /^\**\s*\(/.test(line))){ add(<Inline key={k++} s={line}/>); continue; }
+      flush();
       const im =line.match(/^\[\[\s*이미지\s*[:：]\s*(.+?)\s*\]\]$/);
       if (im){ const f = findImage(st, im[1]); if (f) out.push(<figure key={k++} className="scene"><img src={f.data} alt={f.tag}/></figure>); continue; }
       const d = line.match(/^([^|"“*\[]{1,24}?)\s*[|｜]\s*(.+)$/);
-      if (d){ const av = avatarOf(st, d[1]); out.push(<p key={k++} className="dlg">{av && <Ava ch={av} className="ava"/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></p>); continue; }
+      if (d){ const av = avatarOf(st, d[1]); add(<Fragment key={k++}>{av && <Ava ch={av} className="ava"/>}<span className="who">{d[1]}</span><span className="bar">|</span><Inline s={d[2]}/></Fragment>, true); continue; }
       out.push(<p key={k++} className="narr"><Inline s={line}/></p>);
     }
+    flush();
   }
   if (scene) out.splice(infoAt + 1, 0, <figure key="scene" className="scene"><img src={scene.data} alt={scene.tag}/></figure>);
   return out;

@@ -336,3 +336,6 @@
 :root[data-theme="dark"] #log .m.user:not(.cont){border-color:var(--line)}
 /* 서술 문단 속 "따옴표 말"은 크랙처럼 서술과 같은 회색으로 둔다. 검은색은 대사 줄만 */
 #log .m .narr .q{color:inherit}
+/* 이름 줄 + 대사 + 발음 + 번역은 한 덩어리 : 안쪽 줄 사이는 줄 간격만 */
+#log .m .dgroup .who-line{display:inline}
+#log .m .who-line .who{font-weight:600}
