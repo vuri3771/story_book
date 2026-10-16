@@ -20,15 +20,28 @@ function findImage(st, tag){
   return all.find(i => i.tag === tag) || all.find(i => i.tag && (i.tag.includes(tag) || tag.includes(i.tag)));
 }
 
+// INFO 첫 줄 색 : 크랙처럼 숫자는 주황, 시각(AM12:23)은 청록, 나머지 글자는 밝은 회색
+// 크랙처럼 T 는 흰 굵은 글씨에 숫자만 주황, 연도와 날짜 낱말(2025년, 9월25일(목))은 통째로 주황, 시각은 청록
+function InfoHead({s}){
+  return s.split(/((?:AM|PM|오전|오후)\s?\d{1,2}:\d{2}|\s+)/).filter(Boolean).map((x, i) => {
+    if (/^(AM|PM|오전|오후)/.test(x)) return <span key={i} className="b">{x}</span>;
+    const t = x.match(/^([T𝗧])(\d+)$/);
+    if (t) return <Fragment key={i}><b>{t[1]}</b><span className="a">{t[2]}</span></Fragment>;
+    if (/\d/.test(x)){ const m = x.match(/^(\p{Extended_Pictographic}️?)?(.*)$/u); return <Fragment key={i}>{m[1]}<span className="a">{m[2]}</span></Fragment>; }
+    return <Fragment key={i}>{x}</Fragment>;
+  });
+}
 function Info({body, turn}){
   const lines = body.trim().split('\n');
   return <div className="info"><div className="ih">INFO</div><div className="ib">{lines.map((ln, i) => {
-    const parts = ln.split(/\s*\|\s*/);
+    const parts = ln.split(/\s*[|｜]\s*/);
     let c;
-    if (i === 0) c = <>{turn ? <><b>T{turn}</b> | </> : null}{parts.map((p, j) => <Fragment key={j}>{j > 0 && ' | '}<span className={j <= 1 ? 'a' : j === 2 ? 'b' : ''}>{p}</span></Fragment>)}</>;
-    else if (parts.length > 1) c = <><span className="a">{parts[0]}</span> | {parts.slice(1).join(' | ')}</>;
+    if (i === 0) c = <>{turn && !/^\s*[T𝗧]\d/.test(ln) ? <><b>T</b><span className="a">{turn}</span> | </> : null}{parts.map((p, j) => <Fragment key={j}>{j > 0 && ' | '}<InfoHead s={p}/></Fragment>)}</>;
+    else if (parts.length > 1) c = <><span className="n">{parts[0]}</span> | {parts.slice(1).join(' | ')}</>;
     else c = ln;
-    return <Fragment key={i}>{i > 0 && '\n'}{c}</Fragment>;
+    // 크랙처럼 첫 줄과 인물 목록 사이를 한 줄 띄운다
+    const gap = i === 1 && ln.trim() && lines[0].trim() ? '\n\n' : '\n';
+    return <Fragment key={i}>{i > 0 && gap}{c}</Fragment>;
   })}</div></div>;
 }
 

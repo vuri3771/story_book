@@ -302,8 +302,37 @@
 .lock .btn{flex:none;width:min(280px,100%)}
 
 /* 내 메시지 위아래 여백 : 앞뒤 답변과 확실히 떨어져 보이게 */
-#log .m.user:not(.cont){margin:30px 0 32px;padding:20px 0 12px}
-@media (max-width:899px){ #log .m.user:not(.cont){margin:24px 0 26px;padding:16px 0 8px} }
+
+
 
 /* ⸺ 이름 / ⌜ 이름 ⌟ 줄은 바로 아래 대사와 붙여 보이게 */
 .m .who-line{margin-bottom:2px}
+
+/* ===== 크랙 기본 대화 화면 맞춤(2026-10-16 아이폰 스크린샷 실측) =====
+   모바일 : Pretendard 12.4px, 줄 간격 18.6px, 문단 간격 16px, 서술 #737373, 대사 #1a1918
+   PC 는 같은 비율로 15px 기준 */
+:root{--c-fz:15px;--c-gap:19px}
+@media (max-width:899px){ :root{--c-fz:12.4px;--c-gap:16px} }
+#log{padding-left:16px;padding-right:16px}
+#log .m{font-size:calc(var(--c-fz) * var(--fz,1));line-height:calc(1.5 * var(--lh,1));letter-spacing:var(--ls,0);margin-bottom:calc(var(--c-gap) * var(--pg,1))}
+#log .m p{margin:0 0 calc(var(--c-gap) * var(--pg,1))}
+#log .m p:last-child{margin-bottom:0}
+#log .m .narr,#log .m i{color:#737373}
+#log .m .dlg,#log .m .q,#log .m.user{color:#1a1918}
+#log .m .dlg .who{font-weight:400}
+#log .m .dlg .bar{margin:0 .35em;font-weight:700}
+/* 내 메시지 : 위아래 가는 선, 선과 글 사이 넉넉하게 */
+#log .m.user:not(.cont){border-top:1px solid #eaeaea;border-bottom:1px solid #e5e5e5;padding:calc(var(--c-fz) * 2.1) 0;margin:calc(var(--c-gap) * 1.5) 0 calc(var(--c-fz) * 3.55)}
+#log .m.user:not(.cont) p{margin-bottom:calc(var(--c-gap) * .5)}
+/* INFO : 머리 #42413d 37px, 몸통 #242321 */
+#log .info{background:#242321;color:#d6deeb;border-radius:10px;margin:0 0 calc(var(--c-fz) * 1.95);font-size:calc(var(--c-fz) * var(--fz,1))}
+#log .info .ih{background:#42413d;color:#737373;font-weight:700;letter-spacing:.02em;padding:0 14px;height:calc(var(--c-fz) * 3);display:flex;align-items:center;font-size:calc(var(--c-fz) * 1.1 * var(--fz,1))}
+#log .info .ib{padding:calc(var(--c-fz) * 1.6) 14px;line-height:1.4;white-space:pre-wrap}
+#log .info .ib b{color:#d6deeb;font-weight:700}
+#log .info .a{color:#f78c6c} #log .info .b{color:#7fdbca} #log .info .n{color:#ffcb8b}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) #log .m .dlg,:root:not([data-theme="light"]) #log .m .q,:root:not([data-theme="light"]) #log .m.user{color:var(--text)} :root:not([data-theme="light"]) #log .m .narr,:root:not([data-theme="light"]) #log .m i{color:var(--narr)} :root:not([data-theme="light"]) #log .m.user:not(.cont){border-color:var(--line)} }
+:root[data-theme="dark"] #log .m .dlg,:root[data-theme="dark"] #log .m .q,:root[data-theme="dark"] #log .m.user{color:var(--text)}
+:root[data-theme="dark"] #log .m .narr,:root[data-theme="dark"] #log .m i{color:var(--narr)}
+:root[data-theme="dark"] #log .m.user:not(.cont){border-color:var(--line)}
+/* 서술 문단 속 "따옴표 말"은 크랙처럼 서술과 같은 회색으로 둔다. 검은색은 대사 줄만 */
+#log .m .narr .q{color:inherit}

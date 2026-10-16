@@ -20,9 +20,11 @@ export const KNOBS = {
 };
 const FALLBACK = '"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
 
-export const DEFAULT_LOOK = {font:'noto', size:1, ls:0, lh:1, pg:1};
+// 기본 글꼴은 크랙과 같은 프리텐다드. v2 이전에 저장된 옛 기본값(노토)은 한 번만 프리텐다드로 바꾼다
+export const DEFAULT_LOOK = {font:'pretendard', size:1, ls:0, lh:1, pg:1, v:2};
+const upgrade = o => { if (o && !o.v){ if (!o.font || o.font === 'noto') o.font = 'pretendard'; o.v = 2; } return o; };
 export const look = {...DEFAULT_LOOK};
-try { Object.assign(look, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(e){}
+try { Object.assign(look, upgrade(JSON.parse(localStorage.getItem(KEY) || '{}'))); } catch(e){}
 
 const loaded = new Set();
 export function loadFont(f){
@@ -55,6 +57,7 @@ export function setLook(patch){
 // 다른 기기에서 받은 값(settings.look)을 이 기기에 적용한다
 export function adoptLook(v){
   if (!v || typeof v !== 'object') return;
+  v = upgrade({...v});
   if (Object.keys(DEFAULT_LOOK).every(k => (v[k] ?? DEFAULT_LOOK[k]) === look[k])) return;
   setLook({...DEFAULT_LOOK, ...v});
 }
