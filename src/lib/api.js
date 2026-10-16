@@ -63,15 +63,29 @@ async function callNovelAI({system, messages, max_tokens, onText, signal}){
   const s = S.settings;
   if (!s.naiKey){ openSettings(); throw new Error('먼저 NovelAI 키를 넣어주세요.'); }
   const flat = c => Array.isArray(c) ? c.map(b => b.text || '').join('\n\n') : c;
-  const msgs = [{role:'system', content:flat(system)}, ...messages.map(m => ({role:m.role, content:flat(m.content)}))];
-  const body = {model:s.naiModel || 'glm-4-6', messages:msgs, max_tokens, stream: !!onText};
-  let res;
-  try {
-    res = await safeFetch((s.naiBase || NAI_BASE).replace(/\/+$/, '') + '/chat/completions', {method:'POST', signal, body:JSON.stringify(body),
-      headers:{'content-type':'application/json', 'authorization':'Bearer ' + s.naiKey}});
-  } catch(e){
-    if (e.name === 'AbortError') return {text:'', usage:{in:0, out:0, cw:0, cr:0}, stop:'aborted'};
-    throw new Error('NovelAI에 연결하지 못했어요. 브라우저가 접속을 막았을 수 있어요. 설정의 NovelAI 주소를 확인해주세요.');
+  const sys = flat(system), hist = messages.map(m => ({role:m.role, content:flat(m.content)}));
+  // 요금제마다 한 번에 받는 글 길이(문맥)가 다르다(Tablet 12288). 넘치면 400 이 나니 보내기 전에 맞춰 줄인다
+  // 글자당 토큰 비율과 한도는 한 번 오류가 나면 그 숫자로 배워서 다음부터 맞춘다
+  let limit = s.naiCtx || 12288, ratio = s.naiRatio || 1.1, res, out;
+  for (let attempt = 0; attempt < 2; attempt++){
+    out = Math.min(max_tokens, Math.max(1500, Math.floor(limit * 0.3)));
+    const msgs = fitNai(sys, hist, Math.floor((limit - out) * ratio * 0.95));
+    const body = {model:s.naiModel || 'glm-4-6', messages:msgs, max_tokens:out, stream: !!onText};
+    try {
+      res = await safeFetch((s.naiBase || NAI_BASE).replace(/\/+$/, '') + '/chat/completions', {method:'POST', signal, body:JSON.stringify(body),
+        headers:{'content-type':'application/json', 'authorization':'Bearer ' + s.naiKey}});
+    } catch(e){
+      if (e.name === 'AbortError') return {text:'', usage:{in:0, out:0, cw:0, cr:0}, stop:'aborted'};
+      throw new Error('NovelAI에 연결하지 못했어요. 브라우저가 접속을 막았을 수 있어요. 설정의 NovelAI 주소를 확인해주세요.');
+    }
+    if (res.status !== 400 || attempt) break;
+    const t = await res.clone().text();
+    const m = t.match(/got (\d+) \+ (\d+), max is (\d+)/);
+    if (!m) break;
+    // 실제 토큰 수로 글자당 비율을 다시 재고, 한도를 기억한 뒤 한 번 더 보낸다
+    const chars = msgs.reduce((n, x) => n + x.content.length, 0);
+    ratio = chars / +m[1]; limit = +m[3];
+    s.naiRatio = +ratio.toFixed(3); s.naiCtx = limit;
   }
   if (!res.ok){
     const t = await res.text();
@@ -102,6 +116,34 @@ async function callNovelAI({system, messages, max_tokens, onText, signal}){
     }
   } catch(e){ if (e.name !== 'AbortError') throw e; stop = 'aborted'; }
   return {text:clean(text), usage, stop};
+}
+
+// NovelAI 문맥 한도(글자 수 budget)에 맞춰 줄인다
+// 1. 최근 대화는 최소 4개 남기고, 오래된 것부터 뺀다
+// 2. 그래도 넘치면 시스템 프롬프트에서 이미지 목록, 최근 대화에 안 나온 인물, 인물별 크랙 대화 메모 순으로 뺀다
+// 3. 그래도 넘치면 시스템 프롬프트 가운데를 잘라 앞(형식 규칙)과 끝(진행 원칙)을 남긴다
+function fitNai(sys, hist, budget){
+  const keepMin = Math.min(4, hist.length);
+  const tail = n => hist.slice(hist.length - n);
+  const size = a => a.reduce((n, x) => n + x.content.length, 0);
+  if (sys.length + size(tail(keepMin)) > budget){
+    const recent = tail(6).map(x => x.content).join('\n');
+    // 인물 프로필 안의 크랙 메모 블록은 그 인물 칸에 붙어 있게 표시를 바꿔 둔다
+    let parts = sys.replace(/\n\n\[크랙 대화에서 보인 모습\]/g, '\n\n⟦크랙⟧').split(/\n\n(?=\[)/);
+    const shrink = [
+      p => !p.startsWith('[이미지]'),
+      p => { const m = p.match(/^\[등장인물: ([^\]]+)\]/); return !m || recent.includes(m[1].split(' ')[0]) || recent.includes(m[1]); },
+    ];
+    for (const keep of shrink){ if (parts.join('\n\n').length + size(tail(keepMin)) <= budget) break; parts = parts.filter(keep); }
+    sys = parts.join('\n\n');
+    if (sys.length + size(tail(keepMin)) > budget) sys = sys.replace(/\n\n⟦크랙⟧[\s\S]*?(?=\n\n\[|$)/g, '');
+    sys = sys.replace(/⟦크랙⟧/g, '[크랙 대화에서 보인 모습]');
+    const room = budget - size(tail(keepMin));
+    if (sys.length > room){ const half = Math.max(500, Math.floor(room / 2)); sys = sys.slice(0, half) + '\n…(줄임)…\n' + sys.slice(-half); }
+  }
+  let n = keepMin;
+  while (n < hist.length && sys.length + size(tail(n + 1)) <= budget) n++;
+  return [{role:'system', content:sys}, ...tail(n)];
 }
 
 // 일부 미리보기 환경은 fetch 에 AbortSignal 을 넘기지 못해서 signal 없이 다시 보낸다
