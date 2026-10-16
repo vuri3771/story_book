@@ -24,7 +24,9 @@ export function buildSystem(c){
     + '- 등장인물의 대사는 한 줄에 하나씩 반드시 이 형식으로 쓴다: 이름 | "대사"\n'
     + "- 속마음은 서술 속에 '작은따옴표'로 넣는다.\n"
     + '- 마크다운 제목, 목록, 굵은 글씨는 쓰지 않는다.\n'
-    + '- {{user}}의 입력에서 *별표* 안은 행동, 나머지는 대사다. (OOC: ...)는 이야기 밖의 요청이니 그대로 따른다.\n'
+    + '- {{user}}의 입력에서 [행동·상황] 표시가 붙은 부분(원래 *별표* 안)은 {{user}}의 행동이나 상황 설명이다. 절대 {{user}}의 대사로 바꾸거나 따옴표 안에 넣지 않고, 서술로만 반영한다. 스토리 규칙에 따라 {{user}}의 입력을 옮겨 적을 때도 이 부분은 대사가 아니라 서술 문장으로 적는다.\n'
+    + "- 표시가 없는 부분은 대사다. 다만 '~한다', '~본다'처럼 서술형으로 끝나는 문장은 별표가 없어도 행동으로 본다. **굵게** 쓴 말은 {{user}}가 강조한 부분이다.\n"
+    + '- [OOC] 표시가 붙은 부분은 이야기 밖에서 작가에게 하는 지시다. 이야기 속에 등장시키지 말고 그대로 따른다. [단축어] 표시가 붙은 지시도 그대로 따른다.\n'
     + '- ' + L.rule + (c.minChars > 0 ? ` 응답 본문(INFO 창 제외)은 공백 포함 최소 ${c.minChars}자 이상 쓴다.` : '') + ' {{user}}가 반응할 여지를 남기며 끝낸다.\n'
     + '- 이전 줄거리 요약과 장기 기억의 사실관계를 반드시 지킨다.';
   if (c.noImpersonate !== false) t += '\n- {{user}}의 대사, 행동, 생각, 감정은 절대 대신 쓰지 않는다.';
@@ -52,7 +54,7 @@ export function buildSystem(c){
 export function buildMessages(c, list){
   const msgs = [];
   for (const m of list.slice(c.summarizedUpTo || 0)){
-    const text = m.role === 'user' ? (m.send || m.text) : m.text;
+    const text = m.role === 'user' ? (m.cont ? m.send : prepareUser(m.text, c)) : m.text;
     if (!text) continue;
     const last = msgs[msgs.length-1];
     if (last && last.role === m.role) last.content += '\n\n' + text; else msgs.push({role:m.role, content:text});
@@ -68,8 +70,32 @@ export function allShortcuts(c){
   const st = storyOf(c);
   return [...(st.shortcuts||[]).map(s => ({...s, owner:'st'})), ...S.shortcuts.map(s => ({...s, owner:'me'}))];
 }
-export function expandShortcut(text, c){
-  const m = text.match(/^\/(\S+)\s*([\s\S]*)$/); if (!m) return null;
-  const sc = allShortcuts(c).find(s => s.name === m[1]); if (!sc) return null;
-  return `(OOC: 단축어 /${sc.name} 실행${m[2] ? ` · 입력: ${m[2].trim()}` : ''})\n${sc.body}`;
+// 다른 앱에서 쓰던 이름도 같은 단축어로 받는다
+const ALIAS = {'스킵':'시간', '넘기기':'시간', '진행':'계속', '이어서':'계속'};
+// 단축어는 /이름 으로, 문장 맨 앞이든 중간이든 끝이든 인식한다
+export const SC_RE = /(^|\s)\/([^\s/]+)/g;
+export function findShortcut(name, c){
+  const all = allShortcuts(c);
+  return all.find(s => s.name === name) || all.find(s => s.name === ALIAS[name]);
+}
+
+// 화면에 보이는 입력을 모델이 헷갈리지 않는 형태로 바꾼다
+// *행동* → [행동·상황], (OOC: ...) / OOC: ... → [OOC], /단축어 → 맨 끝에 [단축어] 지시로
+export function prepareUser(text, c){
+  let t = String(text || '');
+  const scs = [];
+  t = t.replace(SC_RE, (all, sp, name) => { scs.push(name); return sp; }).trim();
+  const ooc = [];
+  t = t.replace(/\(\s*O[OC]C\s*[:：]\s*([^)]*)\)/gi, (a, x) => { ooc.push(x.trim()); return ''; });
+  t = t.split('\n').filter(l => { const m = l.match(/^\s*O[OC]C\s*[:：]\s*(.+)$/i); if (m){ ooc.push(m[1].trim()); return false; } return true; }).join('\n');
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, (a, pre, x) => `${pre}[행동·상황: ${x.trim()}]`).trim();
+  let out = t;
+  for (const o of ooc) out += (out ? '\n' : '') + `[OOC: ${o}]`;
+  for (const name of scs){
+    const sc = findShortcut(name, c);
+    out += (out ? '\n\n' : '') + (sc
+      ? `[단축어 /${sc.name} 실행${t ? ' · 위 입력이 이 단축어의 내용이다' : ''}]\n${sc.body}`
+      : `[단축어 /${name}] 사용자가 /${name} 명령을 썼다. 등록된 단축어는 아니니 이름의 뜻을 짐작해 이번 응답에 반영한다.`);
+  }
+  return out || String(text || '');
 }

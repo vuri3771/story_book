@@ -285,3 +285,8 @@
 .spend-box .paid input{width:84px;padding:6px 8px;text-align:right;font-weight:700;border-radius:8px}
 .gauge-l{height:6px;border-radius:9px;background:var(--surface2);overflow:hidden;margin:2px 0 10px}
 .gauge-l i{display:block;height:100%;background:var(--accent)}
+
+/* 내 메시지 : 굵게, 단축어, OOC */
+.m.user b{font-weight:700;color:var(--text)}
+.m .sc{color:var(--blue);font-weight:700}
+.m .ooc{color:var(--muted);font-size:.88em}

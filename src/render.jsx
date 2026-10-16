@@ -2,9 +2,11 @@
 // 서술 : 회색 문단 / 대사 : 이름 | "대사" / ```info``` : INFO 창 / ``` : 박스 / [[이미지:이름]] : 장면 이미지
 import { Fragment } from 'react';
 
+// **굵게** : 굵은 글씨 / *행동* : 상황 설명(회색) / "대사"
 export function Inline({s}){
-  const t = String(s ?? '').replace(/\*\*([^*]+)\*\*/g, '$1');
-  return t.split(/(\*[^*]+\*|"[^"]*"|“[^”]*”)/g).filter(Boolean).map((x, i) => {
+  const t = String(s ?? '');
+  return t.split(/(\*\*[^*]+\*\*|\*[^*]+\*|"[^"]*"|“[^”]*”)/g).filter(Boolean).map((x, i) => {
+    if (x.length > 4 && x.startsWith('**') && x.endsWith('**')) return <b key={i}>{x.slice(2, -2)}</b>;
     if (x.length > 2 && x[0] === '*' && x.endsWith('*')) return <i key={i}>{x.slice(1, -1)}</i>;
     if (x.length > 1 && /^["“]/.test(x) && /["”]$/.test(x)) return <span key={i} className="q">{x}</span>;
     return <Fragment key={i}>{x}</Fragment>;
@@ -88,4 +90,12 @@ export function renderAI(text, st, turn, scene){
 // 19금 뱃지
 export const Badge19 = ({className = ''}) => <span className={'b19 ' + className} aria-label="19세 이상">19</span>;
 
-export function renderUser(text){ return String(text).split('\n').filter(l => l.trim()).map((l, i) => <p key={i}><Inline s={l}/></p>); }
+// 내 메시지 : /단축어는 파란 굵은 글씨, OOC 는 작은 회색 글씨로 구분한다
+function UserLine({s}){
+  return s.split(/((?:^|\s)\/[^\s/]+|\(\s*O[OC]C\s*[:：][^)]*\))/gi).filter(Boolean).map((x, i) => {
+    if (/^\s*\/[^\s/]+$/.test(x)) return <Fragment key={i}>{x.match(/^\s*/)[0]}<b className="sc">{x.trim()}</b></Fragment>;
+    if (/^\(\s*O[OC]C/i.test(x)) return <span key={i} className="ooc">{x}</span>;
+    return <Inline key={i} s={x}/>;
+  });
+}
+export function renderUser(text){ return String(text).split('\n').filter(l => l.trim()).map((l, i) => /^\s*O[OC]C\s*[:：]/i.test(l) ? <p key={i} className="ooc">{l}</p> : <p key={i}><UserLine s={l}/></p>); }

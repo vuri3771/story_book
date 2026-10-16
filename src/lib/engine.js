@@ -4,7 +4,7 @@ import { S, notify, commit, save, toast, go } from './store';
 import { LENGTHS } from './constants';
 import { storyOf, personaOf, fill, plain } from './helpers';
 import { callClaude, track, usingProxy } from './api';
-import { buildSystem, buildMessages, expandShortcut } from './prompt';
+import { buildSystem, buildMessages } from './prompt';
 
 export const run = { busy:false, abort:null, chatId:null, text:'', startedAt:0 };
 export const ADULT_RE = /\n?[ \t]*\[\[\s*19\s*\]\][ \t]*\s*$/;
@@ -38,9 +38,8 @@ export async function generate(c){
 // 성공하면 true, 보낼 게 없거나 단축어가 틀리면 false
 export function send(c, text){
   const t = String(text).trim(); if (!t || run.busy) return false;
-  const exp = t.startsWith('/') ? expandShortcut(t, c) : null;
-  if (t.startsWith('/') && !exp){ toast('없는 단축어예요. / 를 눌러 목록을 확인하세요.'); return false; }
-  c.messages.push(exp ? {role:'user', text:t, send:exp} : {role:'user', text:t});
+  // 단축어와 *행동* 표시는 보낼 때 prepareUser 가 풀어 준다(문장 중간, 끝의 /단축어도 인식)
+  c.messages.push({role:'user', text:t});
   generate(c);
   return true;
 }
