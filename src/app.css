@@ -353,3 +353,7 @@
 
 /* 켜기 끄기 둘 중 하나 고르는 버튼 */
 .seg button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+
+/* 단축어 상단 고정 핀 : 꺼져 있으면 흐리게 */
+.sci .pin{flex:none;font-size:14px;opacity:.25;filter:grayscale(1);padding:4px}
+.sci .pin.on{opacity:1;filter:none}

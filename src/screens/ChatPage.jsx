@@ -44,7 +44,7 @@ export default function ChatPage({id}){
   const [sug, setSug] = useState(null);
   const [openActs, setOpenActs] = useState(() => new Set());
   const popRef = useRef(pop); popRef.current = pop;
-  const inpRef = useRef(null), scRef = useRef(null), lenRef = useRef(-1);
+  const inpRef = useRef(null), scRef = useRef(null), lenRef = useRef(-1), slashRef = useRef(null);
   const spRef = useRef(null), pinRef = useRef(-1), busyRef = useRef(false);
   const [far, setFar] = useState(false);
   const [menu, setMenu] = useState(null);
@@ -90,10 +90,28 @@ export default function ChatPage({id}){
   const atBottom = () => { const sc = scRef.current; return !!sc && c.messages.length > 0 && sc.scrollHeight - sc.scrollTop - sc.clientHeight < 6; };
   const goOn = () => { if (cont(c)) closePop(); };
   const doSend = t => { if (send(c, t)){ setText(''); closePop(); } };
-  const onInput = v => {
+  // 커서 바로 앞이 /글자 면(맨 앞이든 문장 중간이든) 단축어 목록을 그 글자로 걸러 띄운다
+  const onInput = (v, caret = v.length) => {
     setText(v);
-    if (v.startsWith('/') && !v.includes(' ')){ setScQuery(v.slice(1)); setPop('sc'); }
-    else if (pop === 'sc') closePop();
+    const m = v.slice(0, caret).match(/(^|\s)\/([^\s/]*)$/);
+    if (m){ slashRef.current = {start:caret - m[2].length - 1, end:caret}; setScQuery(m[2]); setPop('sc'); }
+    else if (pop === 'sc' && slashRef.current){ slashRef.current = null; closePop(); }
+  };
+  // 단축어를 고르면 입력 중이던 /글자 자리에, 버튼으로 열었으면 커서 자리에 /이름 을 넣는다
+  const pickSc = s => {
+    const inp = inpRef.current, v = text, sl = slashRef.current;
+    const a = sl ? sl.start : (inp?.selectionStart ?? v.length), b = sl ? sl.end : (inp?.selectionEnd ?? v.length);
+    const pre = v.slice(0, a), post = v.slice(b);
+    const ins = (pre && !/\s$/.test(pre) ? ' ' : '') + '/' + s.name + ' ';
+    const nv = pre + ins + post.replace(/^\s+/, '');
+    slashRef.current = null; setText(nv); closePop();
+    requestAnimationFrame(() => { inp?.focus(); const p = (pre + ins).length; inp?.setSelectionRange(p, p); });
+  };
+  // 상단 고정 : 원본 단축어에 pinned 를 켜고 끈다(스토리 단축어는 스토리에, 내 단축어는 내 목록에 저장)
+  const togglePin = s => {
+    const list = s.owner === 'st' ? (st.shortcuts || []) : S.shortcuts;
+    const o = list.find(x => x.id === s.id && x.name === s.name) || list.find(x => x.name === s.name);
+    if (o){ o.pinned = !o.pinned; commit(); }
   };
   const star = () => {
     const inp = inpRef.current, s = inp.selectionStart, e = inp.selectionEnd, v = text;
@@ -174,7 +192,9 @@ export default function ChatPage({id}){
     return <div key={i} data-i={i} className={'m ' + m.role + (m.cont ? ' cont' : '')} onClick={toggle} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={ctx}>{mark}{body}{acts}</div>;
   });
 
-  const scList = pop === 'sc' ? allShortcuts(c).filter(s => (ui.scTab === 'all' || s.owner === ui.scTab) && (!scQuery || s.name.includes(scQuery))) : [];
+  const scList = pop === 'sc' ? allShortcuts(c).filter(s => (ui.scTab === 'all' || s.owner === ui.scTab) && (!scQuery || s.name.includes(scQuery) || (s.desc || '').includes(scQuery)))
+    // 고정한 것 먼저, 그다음 입력한 글자로 시작하는 것, 그다음 나머지
+    .map((s, i) => ({s, k:(s.pinned ? 0 : 2) + (scQuery && s.name.startsWith(scQuery) ? 0 : 1), i})).sort((x, y) => x.k - y.k || x.i - y.i).map(x => x.s) : [];
 
   return <>
     <div className="hdr">
@@ -207,18 +227,19 @@ export default function ChatPage({id}){
       {pop === 'sc' && <div className="pop">
         <div className="tabs">{[['all','전체'],['st','스토리 단축어'],['me','내 단축어']].map(([k, n]) => <button key={k} className={ui.scTab === k ? 'on' : ''} onClick={() => { ui.scTab = k; commit(); }}>{n}</button>)}</div>
         <div className="sclist">{scList.length ? scList.map(s => <div key={s.owner + s.id} className="sci">
-          <button className="mid" style={{textAlign:'left'}} onClick={() => { setText('/' + s.name + ' '); closePop(); inpRef.current?.focus(); }}><b>/{s.name}</b><span className={'tag ' + s.owner}>{s.owner === 'me' ? '나' : '스토리'}</span><span className="ds">{s.desc}</span></button>
+          <button className={'pin' + (s.pinned ? ' on' : '')} aria-label={s.pinned ? '상단 고정 풀기' : '상단 고정'} onClick={() => togglePin(s)}>📌</button>
+          <button className="mid" style={{textAlign:'left'}} onClick={() => pickSc(s)}><b>/{s.name}</b><span className={'tag ' + s.owner}>{s.owner === 'me' ? '나' : '스토리'}</span><span className="ds">{s.desc}</span></button>
           <button className="more" aria-label="단축어 수정" onClick={() => go('shortcut', {chatId:c.id, owner:s.owner, id:s.id})}>···</button>
         </div>) : <div className="sug-load">맞는 단축어가 없어요</div>}</div>
         <button className="addsc" onClick={() => go('shortcut', {chatId:c.id, owner: ui.scTab === 'st' ? 'st' : 'me', id:null})}>+ 단축어 추가</button>
       </div>}
       <div className="composer">
-        <textarea ref={inpRef} rows="1" placeholder="메시지 보내기" value={text} onChange={e => onInput(e.target.value)}
+        <textarea ref={inpRef} rows="1" placeholder="메시지 보내기" value={text} onChange={e => onInput(e.target.value, e.target.selectionStart)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !matchMedia('(pointer:coarse)').matches){ e.preventDefault(); doSend(text); } }}/>
         <div className="tools">
           <button className="circ" aria-label="행동 별표 넣기" onClick={star}><Icon n="star"/></button>
           <button className={'circ ' + (pop === 'sug' ? 'on' : '')} aria-label="추천 답변" onClick={() => pop === 'sug' ? closePop() : openSuggest()}><Icon n="sug"/></button>
-          <button className={'circ ' + (pop === 'sc' ? 'on' : '')} aria-label="단축어" onClick={() => { if (pop === 'sc') closePop(); else { setScQuery(''); setPop('sc'); } }}><Icon n="slash"/></button>
+          <button className={'circ ' + (pop === 'sc' ? 'on' : '')} aria-label="단축어" onClick={() => { if (pop === 'sc') closePop(); else { slashRef.current = null; setScQuery(''); setPop('sc'); } }}><Icon n="slash"/></button>
           <button className="circ zap" aria-label="모델 선택" style={{color:md.color}} onClick={() => openSheet(<ModelSheet chat={c}/>)}><Icon n={md.icon}/></button>
           <span className="grow"/>
           <button className={'send ' + (!busy && text.trim() ? 'ready' : '')} aria-label={busy ? '중지' : text.trim() ? '전송' : '이야기 이어서'} onClick={() => busy ? run.abort?.abort() : text.trim() ? doSend(text) : goOn()}>
