@@ -299,3 +299,7 @@
 .lock input{width:min(280px,100%);text-align:center;font-size:20px;letter-spacing:.3em;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface)}
 .lock small{color:var(--accent);font-size:13px}
 .lock .btn{flex:none;width:min(280px,100%)}
+
+/* 내 메시지 위아래 여백 : 앞뒤 답변과 확실히 떨어져 보이게 */
+#log .m.user:not(.cont){margin:30px 0 32px;padding:20px 0 12px}
+@media (max-width:899px){ #log .m.user:not(.cont){margin:24px 0 26px;padding:16px 0 8px} }

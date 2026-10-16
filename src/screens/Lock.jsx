@@ -44,7 +44,7 @@ export default function Lock({onOk}){
     else { setErr(true); setV(''); ref.current?.focus(); }
   };
   return <form className="lock" onSubmit={go}>
-    <img src="favicon.svg" alt="" width="64" height="64"/>
+    <img src="logo.svg" alt="" width="64" height="64"/>
     <h1>나만의 스토리 챗</h1>
     <p>비밀번호를 입력해 주세요.</p>
     <input ref={ref} type="password" inputMode="numeric" autoComplete="current-password" aria-label="비밀번호" value={v} onChange={e => { setV(e.target.value); setErr(false); }}/>
