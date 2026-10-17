@@ -79,6 +79,8 @@ body{overflow:hidden}
 /* 대화 */
 #log{padding:18px 18px 8px}
 .m{margin-bottom:calc(22px * var(--pg,1));line-height:calc(1.75 * var(--lh,1));letter-spacing:var(--ls,0);font-size:calc(15.5px * var(--fz,1));word-break:keep-all;overflow-wrap:anywhere}
+/* 터치 화면에서 대화 글을 꾹 누르면 휴대폰의 글자 선택과 앱 메뉴가 겹쳐 버벅인다. 복사는 꾹 눌러 뜨는 메뉴로 한다 */
+@media (pointer:coarse){#log .m{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
 .m p{margin:0 0 calc(12px * var(--pg,1))}
 .m .narr{color:var(--narr)}
 .m .dlg{color:var(--text)}

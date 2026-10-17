@@ -1,7 +1,7 @@
 import { useReducer, useState } from 'react';
 import { S, back, replace, commit, goHome, toast } from '../lib/store';
 import { newStory, uid, DEFAULT_INFO, MAX_IMAGES } from '../lib/constants';
-import { storyOf, pickFiles, readImage } from '../lib/helpers';
+import { storyOf, pickFiles, readImage, deleteStory } from '../lib/helpers';
 import { ask } from '../sheets';
 import { autoTag } from '../lib/engine';
 import { Icon } from '../icons';
@@ -14,6 +14,8 @@ export default function StoryEditor({id}){
   const isNew = !orig;
   const [d] = useState(() => orig ? JSON.parse(JSON.stringify(orig)) : newStory());
   const [, bump] = useReducer(x => x + 1, 0);
+  // 사진이 많아지면 기본 정보가 묻혀서, 기본 정보와 사진함을 탭으로 나눈다
+  const [tab, setTab] = useState('info');
 
   const bind = k => ({value:getPath(d, k), onChange:e => { setPath(d, k, e.target.value); bump(); }});
   const f = (k, label, ph, rows, hint) => <>
@@ -57,7 +59,9 @@ export default function StoryEditor({id}){
 
   return <>
     <div className="hdr"><button className="icon-btn" aria-label="뒤로" onClick={back}><Icon n="back"/></button><div className="t center">{isNew ? '새 스토리' : '스토리 편집'}</div><span style={{width:36}}/></div>
+    <div className="set-tabs">{[['info', '기본 정보'], ['images', `사진함 ${d.images.length}`]].map(([k, n]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{n}</button>)}</div>
     <div className="scroll"><div className="edit form" style={{padding:'0 16px 24px'}}>
+      {tab === 'info' && <>
       <label>표지 이미지<small>3:4 비율 추천</small></label>
       <button className="coverpick" onClick={() => addImages('cover')}>{d.cover ? <img src={d.cover} alt=""/> : '이미지 추가'}</button>
       {f('title', <>제목<span className="req">*</span></>, '예: 달그림자 헌책방')}
@@ -99,6 +103,9 @@ export default function StoryEditor({id}){
       {d.infoOn && <div className="fl" style={{marginTop:10}}>INFO 창 위치<select style={{width:'auto'}} value={d.infoAt || 'start'} onChange={e => { d.infoAt = e.target.value; bump(); }}><option value="start">답변 맨 위</option><option value="end">답변 맨 끝</option></select></div>}
       <div className="fl" style={{marginTop:10}}>서술 글자색<select style={{width:'auto'}} value={d.narrColor || 'gray'} onChange={e => { d.narrColor = e.target.value; bump(); }}><option value="gray">회색 (영건즈, 순애남)</option><option value="black">검정 (소꿉친구)</option></select></div>
       {f('memory', '장기 기억', '한 줄에 하나씩. 이 스토리의 모든 대화에 항상 적용돼요.', 4)}
+      {!isNew && <button className="linkbtn danger" style={{marginTop:20}} onClick={() => deleteStory(d.id, goHome)}>스토리 삭제</button>}
+      </>}
+      {tab === 'images' && <>
       <label>이미지 보관함<small>{d.images.length}/{MAX_IMAGES}</small></label>
       <div className="edit-hint" style={{fontSize:12.5, color:'var(--muted)', lineHeight:1.6}}>키워드(쉼표로 여러 개)를 붙여두면 답변 내용과 맞는 이미지가 대화 중에 자동으로 나와요. 키가 있으면 넣는 순간 키워드를 자동으로 달아줘요.</div>
       <div className="fl" style={{marginTop:8}}>상황에 맞는 이미지 자동 표시<button className={'toggle ' + (d.autoImages !== false ? 'on' : '')} aria-label="이미지 자동 표시" onClick={() => { d.autoImages = d.autoImages === false; bump(); }}/></div>
@@ -106,7 +113,7 @@ export default function StoryEditor({id}){
         <input placeholder={tagging.has(im.id) ? '키워드 만드는 중…' : '예: 비, 헌책방, 밤'} {...bind(`images.${i}.tag`)}/>
         <button onClick={() => { d.images.splice(i, 1); bump(); }}>삭제</button></div>)}</div>
       {d.images.length < MAX_IMAGES && <button className="linkbtn" onClick={() => addImages('vault')}>+ 이미지 추가</button>}
-      {!isNew && <button className="linkbtn danger" style={{marginTop:20}} onClick={() => deleteStory(d.id, goHome)}>스토리 삭제</button>}
+      </>}
     </div></div>
     <div className="page-foot"><button className="btn dark" style={{width:'100%'}} onClick={saveStory}>저장</button></div>
   </>;
