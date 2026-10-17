@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { S, back, commit, toast } from '../lib/store';
 import { uid } from '../lib/constants';
 import { chatById, storyOf } from '../lib/helpers';
+import { pushNow } from '../lib/remote';
 import { ask } from '../sheets';
 import { Icon } from '../icons';
 
@@ -10,7 +11,6 @@ export default function ShortcutEditor({chatId, owner, id}){
   const st = chatId ? storyOf(chatById(chatId)) : null;
   const listOf = o => o === 'st' ? (st.shortcuts = st.shortcuts || []) : S.shortcuts;
   const orig = listOf(owner).find(s => s.id === id);
-  const [own, setOwn] = useState(owner);
   const [name, setName] = useState(orig?.name || '');
   const [desc, setDesc] = useState(orig?.desc || '');
   const [body, setBody] = useState(orig?.body || '');
@@ -19,8 +19,9 @@ export default function ShortcutEditor({chatId, owner, id}){
   const saveIt = () => {
     if (!ok) return;
     const d = {name, desc, body};
-    if (orig) Object.assign(orig, d); else listOf(own).push({id:uid(), ...d});
-    commit(); toast('저장했어요.'); back();
+    // 새 단축어는 무조건 모든 스토리 공통(내 단축어)으로 저장하고 바로 서버에 올린다
+    if (orig) Object.assign(orig, d); else S.shortcuts.push({id:uid(), ...d});
+    commit(); pushNow(); toast('저장했어요.'); back();
   };
 
   return <>
@@ -32,11 +33,7 @@ export default function ShortcutEditor({chatId, owner, id}){
       <input maxLength={30} value={desc} onChange={e => setDesc(e.target.value)} placeholder="예: 캐릭터의 일기를 몰래 살펴보세요."/>
       <label>프롬프트 본문<span className="req">*</span><small>{'{char} {user}'} 사용 가능</small></label>
       <textarea rows="14" value={body} onChange={e => setBody(e.target.value)} placeholder="이 단축어를 쓰면 모델에게 전달할 지시"/>
-      {!orig && st && <><label>어디에 저장할까요</label><div className="seg">
-        <button className={own === 'me' ? 'on' : ''} onClick={() => setOwn('me')}>내 단축어 (모든 스토리)</button>
-        <button className={own === 'st' ? 'on' : ''} onClick={() => setOwn('st')}>이 스토리에만</button>
-      </div></>}
-      {orig && <button className="linkbtn danger" style={{marginTop:18}} onClick={() => ask(`/${orig.name} 단축어를 삭제할까요?`, '삭제', () => { const arr = listOf(owner); arr.splice(arr.indexOf(orig), 1); commit(); back(); })}>단축어 삭제</button>}
+      {orig && <button className="linkbtn danger" style={{marginTop:18}} onClick={() => ask(`/${orig.name} 단축어를 삭제할까요?`, '삭제', () => { const arr = listOf(owner); arr.splice(arr.indexOf(orig), 1); commit(); pushNow(); back(); })}>단축어 삭제</button>}
     </div></div>
     <div className="page-foot"><button className="btn dark" style={{width:'100%'}} disabled={!ok} onClick={saveIt}>저장</button></div>
   </>;

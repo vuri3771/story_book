@@ -2,7 +2,7 @@
 // 브라우저 저장소(IndexedDB)는 그대로 두고, 바뀐 항목만 골라 DynamoDB 로 올린다
 // 지갑은 서버가 정본이라 올리지 않고 받아오기만 한다
 import { S, setState, notify, save, toast } from './store';
-import { defaultState } from './constants';
+import { defaultState, uid } from './constants';
 import { run } from './engine';
 import { adoptLook } from './look';
 
@@ -52,7 +52,9 @@ const CHUNK = 280 * 1024; // 한 항목 최대 400KB, 한글은 3바이트라 �
 function toItems(state){
   const items = new Map();
   const {apiKey, naiKey, ...settings} = state.settings || {};
-  items.set('meta', JSON.stringify({settings, personas:state.personas, shortcuts:state.shortcuts, usage:state.usage}));
+  items.set('meta', JSON.stringify({settings, personas:state.personas, usage:state.usage}));
+  // 단축어는 하나씩 sc#<id> 로 따로 둔다. meta 에 묶어 두면 다른 기기가 설정, 쓴 금액만 바꿔도 옛 단축어 목록으로 덮어써졌다
+  (state.shortcuts || []).forEach((s, o) => { s.id ||= uid(); items.set('sc#' + s.id, JSON.stringify({...s, o})); });
   for (const st0 of state.stories || []){
     const st = JSON.parse(JSON.stringify(st0));
     for (const [o, f] of IMG_FIELDS(st)){
@@ -138,7 +140,9 @@ export async function pullState(){
   const next = defaultState();
   next.settings = Object.assign(next.settings, meta.settings || {}, {apiKey:S.settings.apiKey, naiKey:S.settings.naiKey});
   if (meta.personas?.length) next.personas = meta.personas;
-  if (meta.shortcuts) next.shortcuts = meta.shortcuts;
+  // 단축어 : sc# 항목이 있으면 그걸, 없으면(옛 서버 자료) meta 안의 목록을 쓴다
+  const scs = [...map].filter(([k]) => k.startsWith('sc#')).map(([, d]) => JSON.parse(d)).sort((a, b) => a.o - b.o).map(({o, ...s}) => s);
+  if (scs.length) next.shortcuts = scs; else if (meta.shortcuts) next.shortcuts = meta.shortcuts;
   if (meta.usage) next.usage = meta.usage;
   next.spend = S.spend;
   adoptLook(next.settings.look);
@@ -179,7 +183,7 @@ function assembleChat(k, map){
   return c;
 }
 // 항목 키를 묶음 단위로 : meta, story#id, chat#id(본체와 메시지 조각 전부)
-const groupOf = k => k === 'meta' ? 'meta' : (k.match(/^(story#[^#]+|chat#[^#]+)/) || [])[1];
+const groupOf = k => k === 'meta' ? 'meta' : (k.match(/^(story#[^#]+|chat#[^#]+|sc#[^#]+)/) || [])[1];
 function grouped(entries){
   const g = new Map();
   for (const [k, d] of entries){ const gk = groupOf(k); if (!gk) continue; if (!g.has(gk)) g.set(gk, new Map()); g.get(gk).set(k, d); }
@@ -228,9 +232,16 @@ export async function mergeRemote(){
         const meta = JSON.parse(items.get('meta'));
         S.settings = Object.assign({}, S.settings, meta.settings || {}, {apiKey:S.settings.apiKey, naiKey:S.settings.naiKey});
         if (meta.personas?.length) S.personas = meta.personas;
-        if (meta.shortcuts) S.shortcuts = meta.shortcuts;
         if (meta.usage) S.usage = meta.usage;
         adoptLook(S.settings.look);
+      } else if (gk.startsWith('sc#')){
+        // 단축어 하나 : 서버에서 지워졌으면 지우고, 새로 생겼으면 원래 순서 자리에 넣는다
+        const id = gk.slice(3), i = S.shortcuts.findIndex(x => x.id === id);
+        if (!items){ if (i >= 0) S.shortcuts.splice(i, 1); }
+        else {
+          const {o, ...s} = JSON.parse(items.get(gk));
+          if (i >= 0) S.shortcuts[i] = s; else S.shortcuts.splice(Math.min(o ?? S.shortcuts.length, S.shortcuts.length), 0, s);
+        }
       } else {
         const id = gk.split('#')[1], list = gk.startsWith('story#') ? 'stories' : 'chats';
         const i = S[list].findIndex(x => x.id === id);

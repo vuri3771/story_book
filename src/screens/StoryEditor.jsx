@@ -107,6 +107,8 @@ export default function StoryEditor({id}){
       </>}
       {tab === 'images' && <>
       <label>이미지 보관함<small>{d.images.length}/{MAX_IMAGES}</small></label>
+      {/* 이름(키워드)순으로 정렬한다. 숫자는 크기대로(2가 10보다 앞), 이름 없는 사진은 맨 뒤로 */}
+      <button className="linkbtn" onClick={() => { d.images.sort((a, b) => !a.tag - !b.tag || (a.tag || '').localeCompare(b.tag || '', 'ko', {numeric:true})); bump(); toast('이름순으로 정렬했어요. 저장을 눌러야 남아요.'); }}>이름순 정렬</button>
       <div className="edit-hint" style={{fontSize:12.5, color:'var(--muted)', lineHeight:1.6}}>키워드(쉼표로 여러 개)를 붙여두면 답변 내용과 맞는 이미지가 대화 중에 자동으로 나와요. 키가 있으면 넣는 순간 키워드를 자동으로 달아줘요.</div>
       <div className="fl" style={{marginTop:8}}>상황에 맞는 이미지 자동 표시<button className={'toggle ' + (d.autoImages !== false ? 'on' : '')} aria-label="이미지 자동 표시" onClick={() => { d.autoImages = d.autoImages === false; bump(); }}/></div>
       <div className="vgrid">{d.images.map((im, i) => <div key={im.id || i} className="vitem"><img src={im.data} alt=""/>
