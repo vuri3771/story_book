@@ -1,6 +1,6 @@
 import { useReducer, useState } from 'react';
 import { S, back, replace, commit, goHome, toast } from '../lib/store';
-import { newStory, uid, DEFAULT_INFO } from '../lib/constants';
+import { newStory, uid, DEFAULT_INFO, MAX_IMAGES } from '../lib/constants';
 import { storyOf, pickFiles, readImage } from '../lib/helpers';
 import { ask } from '../sheets';
 import { autoTag } from '../lib/engine';
@@ -38,7 +38,7 @@ export default function StoryEditor({id}){
         const data = await readImage(file, target === 'vault' ? 900 : 640);
         if (target === 'cover') d.cover = data;
         else if (target.startsWith('char:')) { const ch = d.characters[+target.slice(5)]; ch.image = data; delete ch.face; }
-        else if (d.images.length < 50){ const im = {id:uid(), tag:'', data}; d.images.push(im); added.push(im); }
+        else if (d.images.length < MAX_IMAGES){ const im = {id:uid(), tag:'', data}; d.images.push(im); added.push(im); }
       }
     } catch(e){ toast('이미지를 읽지 못했어요.'); }
     bump();
@@ -99,13 +99,13 @@ export default function StoryEditor({id}){
       {d.infoOn && <div className="fl" style={{marginTop:10}}>INFO 창 위치<select style={{width:'auto'}} value={d.infoAt || 'start'} onChange={e => { d.infoAt = e.target.value; bump(); }}><option value="start">답변 맨 위</option><option value="end">답변 맨 끝</option></select></div>}
       <div className="fl" style={{marginTop:10}}>서술 글자색<select style={{width:'auto'}} value={d.narrColor || 'gray'} onChange={e => { d.narrColor = e.target.value; bump(); }}><option value="gray">회색 (영건즈, 순애남)</option><option value="black">검정 (소꿉친구)</option></select></div>
       {f('memory', '장기 기억', '한 줄에 하나씩. 이 스토리의 모든 대화에 항상 적용돼요.', 4)}
-      <label>이미지 보관함<small>{d.images.length}/50</small></label>
+      <label>이미지 보관함<small>{d.images.length}/{MAX_IMAGES}</small></label>
       <div className="edit-hint" style={{fontSize:12.5, color:'var(--muted)', lineHeight:1.6}}>키워드(쉼표로 여러 개)를 붙여두면 답변 내용과 맞는 이미지가 대화 중에 자동으로 나와요. 키가 있으면 넣는 순간 키워드를 자동으로 달아줘요.</div>
       <div className="fl" style={{marginTop:8}}>상황에 맞는 이미지 자동 표시<button className={'toggle ' + (d.autoImages !== false ? 'on' : '')} aria-label="이미지 자동 표시" onClick={() => { d.autoImages = d.autoImages === false; bump(); }}/></div>
       <div className="vgrid">{d.images.map((im, i) => <div key={im.id || i} className="vitem"><img src={im.data} alt=""/>
         <input placeholder={tagging.has(im.id) ? '키워드 만드는 중…' : '예: 비, 헌책방, 밤'} {...bind(`images.${i}.tag`)}/>
         <button onClick={() => { d.images.splice(i, 1); bump(); }}>삭제</button></div>)}</div>
-      {d.images.length < 50 && <button className="linkbtn" onClick={() => addImages('vault')}>+ 이미지 추가</button>}
+      {d.images.length < MAX_IMAGES && <button className="linkbtn" onClick={() => addImages('vault')}>+ 이미지 추가</button>}
       {!isNew && <button className="linkbtn danger" style={{marginTop:20}} onClick={() => deleteStory(d.id, goHome)}>스토리 삭제</button>}
     </div></div>
     <div className="page-foot"><button className="btn dark" style={{width:'100%'}} onClick={saveStory}>저장</button></div>
