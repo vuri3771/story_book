@@ -11,7 +11,7 @@ ROLE=story-app-lambda-role
 API_FN=story-api
 CLAUDE_FN=story-claude
 API_NAME=story-api
-ORIGINS='["https://v-stroy-book1.netlify.app","http://localhost:5173","http://localhost:4173"]'
+ORIGINS='["https://v-stroy-book1.netlify.app","https://v-story-book.vercel.app","http://localhost:5173","http://localhost:4173"]'
 ACCT=$(aws sts get-caller-identity --query Account --output text)
 cd "$(dirname "$0")"
 
