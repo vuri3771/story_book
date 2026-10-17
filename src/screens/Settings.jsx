@@ -3,7 +3,7 @@ import { useStore } from '../lib/store';
 import { SettingsForm } from '../sheets';
 
 // 설정을 기능별 탭으로 나눈다. 고른 탭은 이 기기에 기억한다
-const TABS = [['look', '화면'], ['model', '모델'], ['chat', '대화'], ['profile', '대화 프로필'], ['account', '계정·백업']];
+const TABS = [['look', '화면'], ['model', '모델'], ['chat', '대화'], ['profile', '대화 프로필'], ['shortcut', '단축어'], ['account', '계정·백업']];
 const KEY = 'storychat_settab';
 
 export default function Settings(){

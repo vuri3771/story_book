@@ -1,11 +1,11 @@
 // ================= 시트 =================
 import { useState } from 'react';
-import { S, commit, openSheet, closeSheet, closeDrawer, toast, ui, useStore } from './lib/store';
+import { S, commit, openSheet, closeSheet, closeDrawer, toast, ui, useStore, go } from './lib/store';
 import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, uid } from './lib/constants';
 import { modelOf, won, storyOf, exportAll, importFile } from './lib/helpers';
 import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
-import { remoteOn, token, switchAccount, syncStatus } from './lib/remote';
+import { remoteOn, token, switchAccount, syncStatus, pushNow } from './lib/remote';
 import { Icon } from './icons';
 import { Ava } from './render';
 import { FONTS, look, setLook, loadFont, SIZE_MIN, SIZE_MAX, KNOBS, DEFAULT_LOOK } from './lib/look';
@@ -115,6 +115,7 @@ export function SettingsForm({inSheet, sec}){
           <label>이만큼 더 쌓이면 오래된 부분 요약</label><input type="number" min="4" value={f.summarizeEvery} onChange={set('summarizeEvery')}/>
         </>}
         {on('profile') && <><div className="set-h">대화 프로필</div><PersonaList/></>}
+        {on('shortcut') && <><div className="set-h">내 단축어</div><ShortcutList/></>}
         {on('account') && <>
           <div className="set-h">계정과 백업</div>
           <label>환율 (원/달러)</label><input type="number" value={f.krw} onChange={set('krw')}/>
@@ -126,7 +127,7 @@ export function SettingsForm({inSheet, sec}){
       </div>
       {inSheet
         ? <div className="sb"><button className="btn" onClick={closeSheet}>취소</button><button className="btn dark" onClick={saveIt}>저장</button></div>
-        : sec !== 'profile' && <div style={{padding:'20px 20px 28px'}}><button className="btn dark" style={{width:'100%'}} onClick={saveIt}>저장</button></div>}
+        : sec !== 'profile' && sec !== 'shortcut' && <div style={{padding:'20px 20px 28px'}}><button className="btn dark" style={{width:'100%'}} onClick={saveIt}>저장</button></div>}
     </>
   );
 }
@@ -242,6 +243,23 @@ export function LengthSheet({chat}){
       </div>
     </Sheet>
   );
+}
+
+// 설정 화면의 내 단축어 목록 : 모든 스토리에서 쓰는 단축어. 상단 고정, 수정, 추가
+// 내 단축어는 서버의 meta 항목에 같이 저장돼서 바꾸는 즉시 다른 기기와 맞춰진다
+function ShortcutList(){
+  useStore();
+  const list = [...S.shortcuts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  const pin = s => { s.pinned = !s.pinned; commit(); pushNow(); };
+  return <>
+    <div className="note" style={{padding:0}}>여기서 만든 단축어는 모든 스토리에서 쓸 수 있고 서버에 저장돼요. 스토리 전용 단축어는 대화창의 / 버튼에서 관리해요.</div>
+    {list.map(s => <div key={s.id} className="opt">
+      <button className={'pin' + (s.pinned ? ' on' : '')} aria-label={s.pinned ? '상단 고정 풀기' : '상단 고정'} onClick={() => pin(s)}>📌</button>
+      <button className="mid" style={{textAlign:'left'}} onClick={() => go('shortcut', {chatId:null, owner:'me', id:s.id})}><b>/{s.name}</b><span className="d">{s.desc}</span></button>
+      <button className="pen" aria-label="수정" style={{width:34, color:'var(--narr)'}} onClick={() => go('shortcut', {chatId:null, owner:'me', id:s.id})}><Icon n="pen"/></button>
+    </div>)}
+    <button className="linkbtn" onClick={() => go('shortcut', {chatId:null, owner:'me', id:null})}>+ 단축어 추가</button>
+  </>;
 }
 
 // 설정 화면의 대화 프로필 목록 : 고르기 없이 만들고 고치기만 한다

@@ -6,7 +6,8 @@ import { ask } from '../sheets';
 import { Icon } from '../icons';
 
 export default function ShortcutEditor({chatId, owner, id}){
-  const st = storyOf(chatById(chatId));
+  // 설정 화면에서 열면 chatId 가 없다. 그때는 내 단축어만 다룬다
+  const st = chatId ? storyOf(chatById(chatId)) : null;
   const listOf = o => o === 'st' ? (st.shortcuts = st.shortcuts || []) : S.shortcuts;
   const orig = listOf(owner).find(s => s.id === id);
   const [own, setOwn] = useState(owner);
@@ -31,7 +32,7 @@ export default function ShortcutEditor({chatId, owner, id}){
       <input maxLength={30} value={desc} onChange={e => setDesc(e.target.value)} placeholder="예: 캐릭터의 일기를 몰래 살펴보세요."/>
       <label>프롬프트 본문<span className="req">*</span><small>{'{char} {user}'} 사용 가능</small></label>
       <textarea rows="14" value={body} onChange={e => setBody(e.target.value)} placeholder="이 단축어를 쓰면 모델에게 전달할 지시"/>
-      {!orig && <><label>어디에 저장할까요</label><div className="seg">
+      {!orig && st && <><label>어디에 저장할까요</label><div className="seg">
         <button className={own === 'me' ? 'on' : ''} onClick={() => setOwn('me')}>내 단축어 (모든 스토리)</button>
         <button className={own === 'st' ? 'on' : ''} onClick={() => setOwn('st')}>이 스토리에만</button>
       </div></>}

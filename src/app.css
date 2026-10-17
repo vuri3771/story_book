@@ -364,3 +364,7 @@
 .set-tabs button.on{background:var(--text);color:var(--bg)}
 .set-h{font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 2px;letter-spacing:.02em}
 .set-h:first-child{margin-top:4px}
+
+/* 설정 단축어 목록 핀 */
+.opt .pin{flex:none;font-size:14px;opacity:.25;filter:grayscale(1);padding:4px 6px}
+.opt .pin.on{opacity:1;filter:none}
