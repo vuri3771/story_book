@@ -3,7 +3,8 @@
 import { QueryCommand, BatchWriteCommand, BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { ddb, TABLE, uidFrom, getWallet, PACKAGES, KRW } from './common.mjs';
 
-const KEY_RE = /^(meta|story#[\w-]{1,40}|chat#[\w-]{1,40}(#\d{1,4})?|img#[\w-]{1,40})$/;
+// sc# : 단축어 하나씩. meta 와 story# 사이에 정렬돼서 getState 의 두 번째 범위에 들어간다
+const KEY_RE = /^(meta|story#[\w-]{1,40}|chat#[\w-]{1,40}(#\d{1,4})?|img#[\w-]{1,40}|sc#[\w-]{1,40})$/;
 const MAX_ITEM = 390 * 1024;
 const res = (statusCode, body) => ({statusCode, headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
 const sleep = ms => new Promise(r => setTimeout(r, ms));

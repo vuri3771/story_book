@@ -49,12 +49,14 @@ function hash(s){ // cyrb53, 충돌 걱정 없을 만큼 길게 두 번
   return (h2 >>> 0).toString(36) + (h1 >>> 0).toString(36) + s.length.toString(36);
 }
 const CHUNK = 280 * 1024; // 한 항목 최대 400KB, 한글은 3바이트라 여유 있게
+// 서버가 아직 sc# 를 모르면(옛 Lambda) 거절해서 저장 전체가 막힌다. 그때는 이번 실행 동안 예전처럼 meta 에 담는다
+let scOff = false;
 function toItems(state){
   const items = new Map();
   const {apiKey, naiKey, ...settings} = state.settings || {};
-  items.set('meta', JSON.stringify({settings, personas:state.personas, usage:state.usage}));
+  items.set('meta', JSON.stringify({settings, personas:state.personas, usage:state.usage, ...(scOff ? {shortcuts:state.shortcuts} : {})}));
   // 단축어는 하나씩 sc#<id> 로 따로 둔다. meta 에 묶어 두면 다른 기기가 설정, 쓴 금액만 바꿔도 옛 단축어 목록으로 덮어써졌다
-  (state.shortcuts || []).forEach((s, o) => { s.id ||= uid(); items.set('sc#' + s.id, JSON.stringify({...s, o})); });
+  if (!scOff) (state.shortcuts || []).forEach((s, o) => { s.id ||= uid(); items.set('sc#' + s.id, JSON.stringify({...s, o})); });
   for (const st0 of state.stories || []){
     const st = JSON.parse(JSON.stringify(st0));
     for (const [o, f] of IMG_FIELDS(st)){
@@ -124,7 +126,9 @@ export async function pushNow(){
     setStatus({at:Date.now(), error:'', skipped:skipped.length});
   } catch(e){
     console.warn('서버 저장 실패', e);
-    setStatus({...syncStatus, error:e.message});
+    // 옛 서버가 sc# 를 거절했으면 단축어를 meta 에 담는 방식으로 바로 다시 올린다
+    if (!scOff && /sc#/.test(e.message)){ scOff = true; again = true; }
+    else setStatus({...syncStatus, error:e.message});
   } finally {
     syncing = false;
     if (again){ again = false; scheduleSync(); }
@@ -232,6 +236,7 @@ export async function mergeRemote(){
         const meta = JSON.parse(items.get('meta'));
         S.settings = Object.assign({}, S.settings, meta.settings || {}, {apiKey:S.settings.apiKey, naiKey:S.settings.naiKey});
         if (meta.personas?.length) S.personas = meta.personas;
+        if (scOff && meta.shortcuts) S.shortcuts = meta.shortcuts;
         if (meta.usage) S.usage = meta.usage;
         adoptLook(S.settings.look);
       } else if (gk.startsWith('sc#')){
