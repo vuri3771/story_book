@@ -82,11 +82,11 @@ export function SettingsForm({inSheet, sec}){
   const on = k => !sec || sec === k;
   const s = S.settings;
   const [f, setF] = useState({apiKey:s.apiKey, naiKey:s.naiKey || '', naiModel:s.naiModel || 'glm-4-6', naiBase:s.naiBase || NAI_BASE, naiTranslate:s.naiTranslate !== false,
-    model:s.model, helperModel:s.helperModel, keepRecent:s.keepRecent, summarizeEvery:s.summarizeEvery, krw:s.krw, commonNote:s.commonNote || ''});
+    model:s.model, helperModel:s.helperModel, keepRecent:s.keepRecent, summarizeEvery:s.summarizeEvery, krw:s.krw, commonNote:s.commonNote || '', userMoan:s.userMoan !== false});
   const set = k => e => setF({...f, [k]: e.target.value});
   const saveIt = () => {
     Object.assign(s, {apiKey:f.apiKey.trim(), naiKey:f.naiKey.trim(), naiModel:f.naiModel.trim() || 'glm-4-6', naiBase:f.naiBase.trim() || NAI_BASE, naiTranslate:f.naiTranslate,
-      model:f.model, helperModel:f.helperModel, keepRecent:Math.max(6, +f.keepRecent || 30), summarizeEvery:Math.max(4, +f.summarizeEvery || 20), krw:+f.krw || 1400, commonNote:f.commonNote});
+      model:f.model, helperModel:f.helperModel, keepRecent:Math.max(6, +f.keepRecent || 30), summarizeEvery:Math.max(4, +f.summarizeEvery || 20), krw:+f.krw || 1400, commonNote:f.commonNote, userMoan:f.userMoan});
     commit();
     if (inSheet) closeSheet(); else toast('저장했어요.');
   };
@@ -111,6 +111,8 @@ export function SettingsForm({inSheet, sec}){
           <div className="set-h">대화</div>
           <label>공통 유저노트<small>모든 대화에 자동으로 함께 들어가요. 대화별 유저노트에 양식으로 불러올 수도 있어요</small></label>
           <textarea rows="8" value={f.commonNote} onChange={set('commonNote')} placeholder={"예)\n- 대사는 짧게, 서술은 길고 자세하게\n- {{user}}의 호칭 : \n- 지금 관계 : \n- 꼭 지킬 설정 : "}/>
+          <label>19금 장면에서 내 신음, 더티토크 자동<small>성적인 장면에서는 사칭 방지를 켜 둬도 AI가 내 신음과 짧은 야한 말을 내 프로필 말투로 써 줘요</small></label>
+          <div className="seg"><button className={f.userMoan ? 'on' : ''} onClick={() => setF({...f, userMoan:true})}>켜기</button><button className={f.userMoan ? '' : 'on'} onClick={() => setF({...f, userMoan:false})}>끄기</button></div>
           <label>원문 그대로 보낼 최근 메시지 수</label><input type="number" min="6" value={f.keepRecent} onChange={set('keepRecent')}/>
           <label>이만큼 더 쌓이면 오래된 부분 요약</label><input type="number" min="4" value={f.summarizeEvery} onChange={set('summarizeEvery')}/>
         </>}
