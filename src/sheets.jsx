@@ -248,7 +248,7 @@ export function LengthSheet({chat}){
 }
 
 // 설정 화면의 내 단축어 목록 : 모든 스토리에서 쓰는 단축어. 상단 고정, 수정, 추가
-// 내 단축어는 서버의 meta 항목에 같이 저장돼서 바꾸는 즉시 다른 기기와 맞춰진다
+// 내 단축어는 서버에 하나씩(sc#) 저장돼서 바꾸는 즉시 다른 기기와 맞춰진다. 고정 핀은 오른쪽
 function ShortcutList(){
   useStore();
   const list = [...S.shortcuts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
@@ -256,8 +256,8 @@ function ShortcutList(){
   return <>
     <div className="note" style={{padding:0}}>여기서 만든 단축어는 모든 스토리에서 쓸 수 있고 서버에 저장돼요. 스토리 전용 단축어는 대화창의 / 버튼에서 관리해요.</div>
     {list.map(s => <div key={s.id} className="opt">
-      <button className={'pin' + (s.pinned ? ' on' : '')} aria-label={s.pinned ? '상단 고정 풀기' : '상단 고정'} onClick={() => pin(s)}>📌</button>
       <button className="mid" style={{textAlign:'left'}} onClick={() => go('shortcut', {chatId:null, owner:'me', id:s.id})}><b>/{s.name}</b><span className="d">{s.desc}</span></button>
+      <button className={'pin' + (s.pinned ? ' on' : '')} aria-label={s.pinned ? '상단 고정 풀기' : '상단 고정'} onClick={() => pin(s)}>📌</button>
       <button className="pen" aria-label="수정" style={{width:34, color:'var(--narr)'}} onClick={() => go('shortcut', {chatId:null, owner:'me', id:s.id})}><Icon n="pen"/></button>
     </div>)}
     <button className="linkbtn" onClick={() => go('shortcut', {chatId:null, owner:'me', id:null})}>+ 단축어 추가</button>

@@ -49,6 +49,8 @@ export default function ChatPage({id}){
   const [far, setFar] = useState(false);
   const [menu, setMenu] = useState(null);
   const press = useRef({t:0, x:0, y:0, fired:0});
+  // 다 쓴 메시지의 그려진 결과를 기억해 둔다. 대화가 길면 글자가 들어올 때마다(0.25초마다) 모든 메시지를 다시 해석해서 느려졌다
+  const bodyCache = useRef(new WeakMap());
   // 맨 아래에서 더 끌어올리면(휠은 더 굴리면) 내 말 없이 이야기를 이어 간다
   const [pull, setPull] = useState(0);
   const pullRef = useRef({y:-1, wheel:0, wt:0});
@@ -75,6 +77,13 @@ export default function ChatPage({id}){
   });
 
   useEffect(() => { if (!c) goHome(); }, [c]);
+  // 대화 글에서는 글자 선택이 시작되지 않게 막는다(수정 입력칸 제외). CSS 만으로는 일부 기기에서 블록이 잡혀 메뉴와 겹쳤다
+  useEffect(() => {
+    const sc = scRef.current; if (!sc) return;
+    const h = e => { if (!e.target.closest?.('textarea, input')) e.preventDefault(); };
+    sc.addEventListener('selectstart', h);
+    return () => sc.removeEventListener('selectstart', h);
+  }, [!!c]);
   // 사이드 메뉴에서 단축어 관리를 누르면 단축어 창을 연다
   useEffect(() => { if (ui.pendingPop){ setScQuery(''); setPop(ui.pendingPop); ui.pendingPop = null; } });
   // 첫 글자가 오기 전에도 게이지가 움직이도록 생성 중에는 주기적으로 다시 그린다
@@ -135,13 +144,23 @@ export default function ChatPage({id}){
     const t = streaming ? run.text : m.text;
     let body;
     if (m.cont) body = <div className="cont-mark">▶ 이야기 이어서</div>;
-    else if (m.role !== 'assistant') body = renderUser(m.text);
+    else if (m.role !== 'assistant'){
+      const hit = bodyCache.current.get(m);
+      if (hit && hit.t === m.text) body = hit.body;
+      else { body = renderUser(m.text); bodyCache.current.set(m, {t:m.text, body}); }
+    }
     else if (!t) body = <div className="gen-card"><div className="gl"><span>장면을 구상하는 중…</span><span>{Math.round(pct)}%</span></div><div className="gauge"><i style={{width: pct + '%'}}/></div></div>;
+    else if (streaming) body = renderAI(fill(t, c), st, st.infoOn ? turn : 0, null);
     else {
-      // 스트리밍 중엔 이미지가 바뀌며 깜빡이지 않게 다 쓴 뒤에 고른다
-      const scene = streaming ? null : pickScene(t, st, prevScene);
-      if (scene) prevScene = scene;
-      body = renderAI(fill(t, c), st, st.infoOn ? turn : 0, scene);
+      // 스트리밍 중엔 이미지가 바뀌며 깜빡이지 않게 다 쓴 뒤에 고른다. 내용, 턴, 앞 장면, 스토리, 이름이 같으면 전에 그린 걸 그대로 쓴다
+      const ft = fill(t, c), hit = bodyCache.current.get(m);
+      if (hit && hit.ft === ft && hit.turn === turn && hit.prev === prevScene && hit.st === st){ body = hit.body; if (hit.scene) prevScene = hit.scene; }
+      else {
+        const prev = prevScene, scene = pickScene(t, st, prevScene);
+        if (scene) prevScene = scene;
+        body = renderAI(ft, st, st.infoOn ? turn : 0, scene);
+        bodyCache.current.set(m, {ft, turn, prev, st, scene, body});
+      }
     }
     const delFrom = () => ask('이 메시지부터 아래를 모두 지울까요?', '삭제', () => { c.messages.splice(i); c.summarizedUpTo = Math.min(c.summarizedUpTo || 0, c.messages.length); commit(); });
     const edit = () => openSheet(<EditMsgSheet chat={c} i={i}/>);
@@ -172,6 +191,8 @@ export default function ChatPage({id}){
     const copy = async () => { try { await navigator.clipboard.writeText(copyText(m, c)); toast('복사했어요.'); } catch(e){ openSheet(<SelectCopySheet text={copyText(m, c)}/>); } };
     const openMenu = (x, y) => {
       if (streaming) return;
+      // 혹시 잡힌 블록이 있으면 지운다. 남아 있으면 메뉴 위로 선택 손잡이가 겹쳐 눌리지 않는다
+      try { window.getSelection()?.removeAllRanges(); } catch(e){}
       press.current.fired = Date.now();
       navigator.vibrate?.(10);
       setMenu({x, y, items:[['수정', edit], ...(i > 0 ? [['삭제', delFrom]] : []), ['분기', branch], ['복사', copy], ['선택 복사', () => openSheet(<SelectCopySheet text={copyText(m, c)}/>)]]});
@@ -227,8 +248,8 @@ export default function ChatPage({id}){
       {pop === 'sc' && <div className="pop">
         <div className="tabs">{[['all','전체'],['st','스토리 단축어'],['me','내 단축어']].map(([k, n]) => <button key={k} className={ui.scTab === k ? 'on' : ''} onClick={() => { ui.scTab = k; commit(); }}>{n}</button>)}</div>
         <div className="sclist">{scList.length ? scList.map(s => <div key={s.owner + s.id} className="sci">
-          <button className={'pin' + (s.pinned ? ' on' : '')} aria-label={s.pinned ? '상단 고정 풀기' : '상단 고정'} onClick={() => togglePin(s)}>📌</button>
           <button className="mid" style={{textAlign:'left'}} onClick={() => pickSc(s)}><b>/{s.name}</b><span className={'tag ' + s.owner}>{s.owner === 'me' ? '나' : '스토리'}</span><span className="ds">{s.desc}</span></button>
+          <button className={'pin' + (s.pinned ? ' on' : '')} aria-label={s.pinned ? '상단 고정 풀기' : '상단 고정'} onClick={() => togglePin(s)}>📌</button>
           <button className="more" aria-label="단축어 수정" onClick={() => go('shortcut', {chatId:c.id, owner:s.owner, id:s.id})}>···</button>
         </div>) : <div className="sug-load">맞는 단축어가 없어요</div>}</div>
         <button className="addsc" onClick={() => go('shortcut', {chatId:c.id, owner: ui.scTab === 'st' ? 'st' : 'me', id:null})}>+ 단축어 추가</button>

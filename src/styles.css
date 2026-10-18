@@ -79,9 +79,13 @@ body{overflow:hidden}
 /* 대화 */
 #log{padding:18px 18px 8px}
 .m{margin-bottom:calc(22px * var(--pg,1));line-height:calc(1.75 * var(--lh,1));letter-spacing:var(--ls,0);font-size:calc(15.5px * var(--fz,1));word-break:keep-all;overflow-wrap:anywhere}
-/* 터치 화면에서 대화 글을 꾹 누르면 휴대폰의 글자 선택과 앱 메뉴가 겹쳐 버벅인다. 복사는 꾹 눌러 뜨는 메뉴로 한다 */
-@media (pointer:coarse){#log .m{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+/* 대화 글을 꾹 누르면 글자 선택(블록)과 앱 메뉴가 겹쳐 먹통이 된다. 터치 판정이 안 걸리는 기기도 있어서 항상 끈다
+   복사는 꾹 눌러 뜨는 메뉴로 하고, 메시지 수정 입력칸은 그대로 선택된다 */
+#log .m, .mmenu-bg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#log .m textarea, #log .m input{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .m p{margin:0 0 calc(12px * var(--pg,1))}
+/* 입력창 글자도 대화 글과 같은 글꼴, 크기, 자간을 따른다. 16px 아래여도 viewport maximum-scale=1 이라 아이폰에서 확대되지 않는다 */
+body .dock textarea{font-family:var(--font);font-size:calc(15.5px * var(--fz,1));letter-spacing:var(--ls,0)}
 .m .narr{color:var(--narr)}
 .m .dlg{color:var(--text)}
 .m .dlg .who{font-weight:500}
