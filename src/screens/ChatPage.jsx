@@ -3,7 +3,7 @@ import { useStore, ui, go, back, goHome, commit, openSheet, closeSheet, openDraw
 import { EXPECTED_CHARS, uid } from '../lib/constants';
 import { chatById, storyOf, modelOf, fill, won } from '../lib/helpers';
 import { allShortcuts } from '../lib/prompt';
-import { run, send, regen, cont, suggest, isAdultChat } from '../lib/engine';
+import { run, send, regen, cont, suggest, isAdultChat, recover } from '../lib/engine';
 import { renderAI, renderUser, Inline, pickScene, Badge19 } from '../render';
 import { ask, Sheet, ModelSheet, EditMsgSheet } from '../sheets';
 import ChatMenu from './MenuPage';
@@ -77,6 +77,16 @@ export default function ChatPage({id}){
   });
 
   useEffect(() => { if (!c) goHome(); }, [c]);
+  // 마지막 답변이 끊긴 채(partial)면 서버가 끝까지 받아 둔 완성본을 조용히 한 번 찾아본다. 서버가 아직 쓰는 중일 수 있어 조금 기다렸다 본다
+  const triedRef = useRef(new Set());
+  const lastMsg = c?.messages[c.messages.length - 1];
+  useEffect(() => {
+    const m = lastMsg;
+    if (!c || run.busy || !m?.partial || !m.rid || triedRef.current.has(m.rid)) return;
+    triedRef.current.add(m.rid);
+    const t = setTimeout(() => { recover(c, m).then(ok => ok && toast('끊긴 답변을 되찾았어요.')); }, 2000);
+    return () => clearTimeout(t);
+  }, [lastMsg?.rid, lastMsg?.partial, run.busy]);
   // 대화 글에서는 글자 선택이 시작되지 않게 막는다(수정 입력칸 제외). CSS 만으로는 일부 기기에서 블록이 잡혀 메뉴와 겹쳤다
   useEffect(() => {
     const sc = scRef.current; if (!sc) return;
@@ -149,6 +159,7 @@ export default function ChatPage({id}){
       if (hit && hit.t === m.text) body = hit.body;
       else { body = renderUser(m.text); bodyCache.current.set(m, {t:m.text, body}); }
     }
+    else if (!t && m.partial && !streaming) body = <div className="cont-mark">연결이 끊겨 답변을 받지 못했어요. 아래 "끊긴 답변 불러오기"를 눌러 보세요.</div>;
     else if (!t) body = <div className="gen-card"><div className="gl"><span>장면을 구상하는 중…</span><span>{Math.round(pct)}%</span></div><div className="gauge"><i style={{width: pct + '%'}}/></div></div>;
     else if (streaming) body = renderAI(fill(t, c), st, st.infoOn ? turn : 0, null);
     else {
@@ -167,6 +178,7 @@ export default function ChatPage({id}){
     let acts;
     if (m.role === 'assistant' && i === lastAI && !busy){
       acts = <div className="acts">
+        {m.partial && m.rid && <button onClick={async () => { if (await recover(c, m)) toast('끊긴 답변을 되찾았어요.'); else toast('아직 서버에 완성된 답변이 없어요. 잠시 뒤 다시 눌러 보세요.'); }}>⤓ 끊긴 답변 불러오기</button>}
         {i > 0 && <button onClick={() => regen(c)}>↻ 다시 생성</button>}
         <button onClick={edit}>수정</button>
         {i > 0 && <button onClick={delFrom}>삭제</button>}

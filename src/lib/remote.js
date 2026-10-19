@@ -27,6 +27,12 @@ async function call(path, body){
   return j;
 }
 
+// ----- 끊긴 답변 되찾기 : 서버가 이 대화의 마지막 답변을 끝까지 받아 남겨 둔 것 -----
+export async function fetchLast(chatId){
+  if (!remoteOn) return null;
+  try { return await call('/last?chat=' + encodeURIComponent(chatId)); } catch(e){ return null; }
+}
+
 // ----- 쓴 금액 : 서버가 날짜별로 기록한 것을 받아온다 -----
 export async function refreshWallet(){
   if (!remoteOn) return;

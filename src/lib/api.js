@@ -15,12 +15,14 @@ export async function callClaude(args){
   finally { if (PROXY && modelOf(args.model).provider !== 'nai') refreshWallet(); }
 }
 
-async function callClaudeRaw({model, system, messages, max_tokens, effort, onText, signal}){
+async function callClaudeRaw({model, system, messages, max_tokens, effort, onText, signal, recover}){
   const md = modelOf(model);
   if (md.provider === 'nai') return callNovelAI({system, messages, max_tokens, onText, signal});
   if (!PROXY && !S.settings.apiKey){ openSettings(); throw new Error('먼저 API 키를 넣어주세요.'); }
   const body = {model, max_tokens, system, messages, stream: !!onText};
   if (effort) body.output_config = {effort};
+  // 서버가 다 받은 답변을 남겨 두게 "대화id:요청id" 를 같이 보낸다. 옛 서버는 모르는 항목이라 무시한다
+  if (PROXY && recover) body.recover = recover;
   const headers = PROXY
     ? {'content-type':'application/json', ...authHeader()}
     : {'content-type':'application/json', 'x-api-key':S.settings.apiKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'};
@@ -29,7 +31,7 @@ async function callClaudeRaw({model, system, messages, max_tokens, effort, onTex
   let res = await safeFetch(PROXY || 'https://api.anthropic.com/v1/messages', {method:'POST', headers, body:JSON.stringify(body), signal});
   if (res.status === 400 && useFb){
     const t = await res.text();
-    if (/fallback|beta/i.test(t)){ S.settings.noFallback = true; save(); return callClaudeRaw({model, system, messages, max_tokens, effort, onText, signal}); }
+    if (/fallback|beta/i.test(t)){ S.settings.noFallback = true; save(); return callClaudeRaw({model, system, messages, max_tokens, effort, onText, signal, recover}); }
     throw new Error(apiError(400, t));
   }
   if (!res.ok) throw new Error(apiError(res.status, await res.text()));

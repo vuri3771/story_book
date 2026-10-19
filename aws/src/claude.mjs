@@ -1,6 +1,7 @@
 // story-claude : Lambda 함수 URL(응답 스트리밍)로 Claude 를 대신 부르고 쓴 금액을 기록한다
 // Anthropic 키는 이 함수의 환경변수 ANTHROPIC_API_KEY 에만 있다. CORS 는 함수 URL 설정이 붙인다
-import { uidFrom, record, PRICES } from './common.mjs';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { uidFrom, record, PRICES, ddb, TABLE } from './common.mjs';
 
 const ANTHROPIC = 'https://api.anthropic.com/v1/messages';
 // 서버측 도구(웹 검색 등)로 요금이 새지 않게 허용한 필드만 넘긴다
@@ -18,6 +19,8 @@ export async function handle(event, out){
   if (!PRICES[req.model]) return json(400, '쓸 수 없는 모델이에요.');
   const body = {};
   for (const k of ALLOWED) if (req[k] !== undefined) body[k] = req[k];
+  // 끊긴 답변 되찾기 : "대화id:요청id" 가 오면 다 받은 답변을 last#대화id 에 남긴다(대화마다 마지막 하나만)
+  const rec = typeof req.recover === 'string' && /^[\w-]{1,40}:[\w-]{4,40}$/.test(req.recover) ? req.recover.split(':') : null;
   body.max_tokens = Math.min(Math.max(1, +body.max_tokens || 1024), 20000);
 
   const headers = {'content-type':'application/json', 'x-api-key':process.env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01'};
@@ -38,22 +41,29 @@ export async function handle(event, out){
 
   out.start(200, {'content-type':'text/event-stream', 'cache-control':'no-cache'});
   const reader = res.body.getReader(), dec = new TextDecoder();
-  let buf = '';
+  let buf = '', text = '', stop = null, gone = false;
   try {
     while (true){
       const {done, value} = await reader.read(); if (done) break;
-      out.write(value);
+      // 앱 연결이 끊겨도(화면 꺼짐, 네트워크) 요금은 나가니 Anthropic 답변은 끝까지 받는다
+      if (!gone){ try { out.write(value); } catch(e){ gone = true; } }
       buf += dec.decode(value, {stream:true});
       let k;
       while ((k = buf.indexOf('\n')) >= 0){
         const line = buf.slice(0, k).trim(); buf = buf.slice(k + 1);
         if (!line.startsWith('data:')) continue;
-        try { const ev = JSON.parse(line.slice(5)); if (ev.type === 'message_start') addU(ev.message?.usage); else if (ev.type === 'message_delta') addU(ev.usage); } catch(e){}
+        try {
+          const ev = JSON.parse(line.slice(5));
+          if (ev.type === 'message_start') addU(ev.message?.usage);
+          else if (ev.type === 'message_delta'){ addU(ev.usage); stop = ev.delta?.stop_reason || stop; }
+          else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') text += ev.delta.text;
+        } catch(e){}
       }
     }
   } finally {
-    out.end();
+    try { out.end(); } catch(e){}
     await record(uid, body.model, u);
+    if (rec && text) await ddb.send(new PutCommand({TableName:TABLE, Item:{uid, k:'last#' + rec[0], rid:rec[1], text, stop, at:Date.now()}})).catch(e => console.error('last 저장 실패', e));
   }
 }
 

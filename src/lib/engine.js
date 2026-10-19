@@ -1,7 +1,8 @@
 // ================= 대화 진행 =================
 // 스트리밍 중인 글은 run.text 에만 두고, 끝나면 메시지에 옮겨 저장한다
 import { S, notify, commit, save, toast, go } from './store';
-import { LENGTHS } from './constants';
+import { LENGTHS, uid } from './constants';
+import { fetchLast } from './remote';
 import { storyOf, personaOf, fill, plain, modelOf } from './helpers';
 import { callClaude, track, usingProxy } from './api';
 import { buildSystem, buildMessages, FREE_START, prepareUser } from './prompt';
@@ -13,9 +14,11 @@ export const isAdultChat = (c, st) => !!st?.adult || !!c?.messages?.some(m => m.
 export async function generate(c){
   if (!c || run.busy) return;
   run.busy = true; run.chatId = c.id; run.text = ''; run.startedAt = Date.now();
-  const m = {role:'assistant', text:''}; c.messages.push(m); c.updated = Date.now();
+  // partial : 다 받기 전이라는 표시. 쓰는 중인 글을 몇 초마다 기기에 남겨서, 화면이 꺼지거나 새로고침돼도 받은 데까지는 남는다
+  const m = {role:'assistant', text:'', rid:uid(), partial:true}; c.messages.push(m); c.updated = Date.now();
   run.abort = new AbortController();
-  notify();
+  notify(); save();
+  const keep = setInterval(() => { if (run.text && run.text !== m.text){ m.text = run.text; save(); } }, 2500);
   try {
     // NovelAI 는 한국어가 어색해서, 번역 모드면 영어로 주고받고 보조 모델이 양쪽을 옮긴다
     // 내 입력은 번역하지 않고 한국어 그대로 보낸다(모델이 한국어는 잘 알아듣는다). 답변은 영어로 흘려 받으면서
@@ -27,8 +30,9 @@ export async function generate(c){
     if (tr) system = [...system, {type:'text', text:EN_RULE}];
     const r = await callClaude({model:c.model, system, messages:buildMessages(c, hist, tr),
       max_tokens:Math.max(LENGTHS[c.length || 'normal'].max, (c.minChars || 0) * 3 + 3000), effort:c.effort || 'low', signal:run.abort.signal,
+      recover: c.id + ':' + m.rid,
       onText: tr ? t => tq.feed(t) : t => { run.text = t; notify(); }});
-    m.text = r.text;
+    m.text = r.text; delete m.partial;
     if (tr && r.text.trim()){ m.en = r.text; m.text = await tq.finish(r.text); }
     // 모델이 붙인 수위 표시 [[19]] 는 본문에서 떼고 메시지 표시로 옮긴다
     if (ADULT_RE.test(m.text)){ m.adult = true; m.text = m.text.replace(ADULT_RE, '').trimEnd(); }
@@ -38,10 +42,28 @@ export async function generate(c){
     run.busy = false; save();
     maybeSummarize(c).catch(e => toast('요약 실패 : ' + e.message));
   } catch(e){
-    // 중간에 끊기면 받은 데까지는 남긴다, 아무것도 못 받았으면 내 메시지만 남아 다시 불러오기로 이어 간다
-    if (c.messages[c.messages.length-1] === m){ if (run.text.trim()) m.text = run.text; else c.messages.pop(); }
+    // 중간에 끊기면 받은 데까지는 남기고 partial 표시를 둔다. 서버가 끝까지 받아 둔 답변을 "끊긴 답변 불러오기"로 되찾을 수 있다
+    // 아무것도 못 받았고 서버에 남을 것도 없으면(NovelAI) 내 메시지만 남겨 다시 불러오기로 이어 간다
+    if (c.messages[c.messages.length-1] === m){
+      if (run.text.trim()) m.text = run.text;
+      else if (modelOf(c.model).provider !== 'nai') m.text = '';
+      else c.messages.pop();
+    }
     toast(e.message);
-  } finally { run.busy = false; run.abort = null; run.text = ''; commit(); }
+  } finally { clearInterval(keep); run.busy = false; run.abort = null; run.text = ''; commit(); }
+}
+
+// 끊긴 답변 되찾기 : 서버가 끝까지 받아 둔 이 대화의 마지막 답변이 이 메시지 것이면 채운다
+// 성공하면 true, 아직 없으면(서버가 쓰는 중이거나 남은 게 없음) false
+export async function recover(c, m){
+  if (!m?.partial || !m.rid || run.busy) return false;
+  const j = await fetchLast(c.id);
+  if (!j || j.rid !== m.rid || !j.text?.trim() || j.text.length < (m.text || '').length) return false;
+  m.text = j.text;
+  if (ADULT_RE.test(m.text)){ m.adult = true; m.text = m.text.replace(ADULT_RE, '').trimEnd(); }
+  delete m.partial;
+  commit();
+  return true;
 }
 
 // ================= NovelAI 번역 모드 =================
@@ -95,6 +117,9 @@ export function send(c, text){
   const t = String(text).trim(); if (!t || run.busy) return false;
   // 자유 시작의 INFO 창을 못 받았으면 시작 지시는 버리고 내 입력으로 바로 연다
   if (c.messages[c.messages.length-1]?.start) c.messages.pop();
+  // 끊겨서 글이 하나도 없는 답변 자리는 지운다(빈 답변이 섞이면 모델 호출이 실패한다)
+  const last = c.messages[c.messages.length-1];
+  if (last?.role === 'assistant' && last.partial && !last.text?.trim()) c.messages.pop();
   // 단축어와 *행동* 표시는 보낼 때 prepareUser 가 풀어 준다(문장 중간, 끝의 /단축어도 인식)
   c.messages.push({role:'user', text:t});
   generate(c);
@@ -105,7 +130,9 @@ export function send(c, text){
 const CONT_PROMPT = '(사용자는 이번에 아무 말도 하지 않았다. 직전 장면에서 자연스럽게 이어서 이야기를 다음으로 진행해라. 사용자 캐릭터의 대사나 행동은 새로 정하지 않는다.)';
 export function cont(c){
   if (run.busy || !c?.messages.length) return false;
-  if (c.messages[c.messages.length-1].role === 'user'){ regen(c); return true; }
+  const last = c.messages[c.messages.length-1];
+  // 마지막이 내 메시지거나, 끊겨서 글이 없는 답변이면 그 자리에서 다시 불러온다
+  if (last.role === 'user' || (last.partial && !last.text?.trim())){ regen(c); return true; }
   c.messages.push({role:'user', text:'', send:CONT_PROMPT, cont:true});
   generate(c);
   return true;

@@ -1,6 +1,6 @@
 // story-api : API Gateway(HTTP API) 뒤에서 저장, 불러오기, 지갑을 처리한다
 // CORS 는 API Gateway 설정이 붙인다
-import { QueryCommand, BatchWriteCommand, BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, BatchWriteCommand, BatchGetCommand, UpdateCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { ddb, TABLE, uidFrom, getWallet, PACKAGES, KRW } from './common.mjs';
 
 // sc# : 단축어 하나씩. meta 와 story# 사이에 정렬돼서 getState 의 두 번째 범위에 들어간다
@@ -27,6 +27,7 @@ export const handler = async event => {
       case 'POST /images': return await images(uid, body);
       case 'GET /wallet': return res(200, await getWallet(uid));
       case 'GET /usage': return res(200, await getUsage(uid));
+      case 'GET /last': return await getLast(uid, event.queryStringParameters?.chat);
       case 'POST /wallet/test-charge': return await testCharge(uid, body);
       default: return res(404, {error:'없는 주소예요.'});
     }
@@ -90,6 +91,15 @@ async function images(uid, {keys = []}){
     if (pending.length){ if (++tries > 6) break; await sleep(100 * 2 ** tries); }
   }
   return res(200, {images:out});
+}
+
+// 끊긴 답변 되찾기 : story-claude 가 대화마다 마지막으로 끝까지 받은 답변을 last#<대화id> 에 남겨 둔다
+// last# 는 getState 가 읽는 키 범위 밖이라 동기화 데이터와 섞이지 않는다
+async function getLast(uid, chat){
+  if (!/^[\w-]{1,40}$/.test(chat || '')) return res(400, {error:'잘못된 요청이에요.'});
+  const r = await ddb.send(new GetCommand({TableName:TABLE, Key:{uid, k:'last#' + chat}}));
+  const it = r.Item;
+  return res(200, it ? {rid:it.rid, text:it.text, stop:it.stop, at:it.at} : {});
 }
 
 // 쓴 금액 : 날짜별 기록과 전체 누적(날짜별 기록을 만들기 전 사용분까지 포함)
