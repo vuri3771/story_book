@@ -54,10 +54,10 @@ export function readImage(file, max){
   });
 }
 
-// claude.ai 라이트판으로 옮기기 : 라이트판을 새 탭으로 열고, 스토리가 있으면 글만 담은 스토리 파일을 받는다
-// 라이트판은 바깥 서버에 연결할 수 없어서 파일로 건넨다. 창은 클릭 안에서 먼저 열어야 막히지 않는다
+// claude.ai 라이트판으로 옮기기 : 라이트판은 <a href={LITE_URL} target="_blank"> 링크로 연다
+// (코드로 window.open 하면 홈 화면 앱과 일부 브라우저가 조용히 막아서 아무 반응이 없었다)
+// 스토리 화면의 링크는 누를 때 이 함수로 글만 담은 스토리 파일도 받는다. 라이트판은 바깥 서버에 연결할 수 없어서 파일로 건넨다
 export function openLite(st){
-  window.open(LITE_URL, '_blank', 'noopener');
   if (!st) return;
   const story = {title:st.title, intro:st.intro, world:st.world, commonRules:st.commonRules, greeting:st.greeting, greetingSetup:st.greetingSetup, memory:st.memory,
     characters:(st.characters || []).map(x => ({name:x.name, profile:x.profile}))};

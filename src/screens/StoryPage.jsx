@@ -3,7 +3,7 @@ import { useStore, go, back, replace, commit, openSheet, closeSheet, goHome, toa
 import { genOpenings } from '../lib/recommend';
 import { CharacterSheet, CharPh, Sheet } from '../sheets';
 import { Badge19, Ava } from '../render';
-import { uid } from '../lib/constants';
+import { uid, LITE_URL } from '../lib/constants';
 import { freeStart } from '../lib/engine';
 import { storyOf, personaOf, coverOf, plain, ago, deleteStory, openLite } from '../lib/helpers';
 import { Icon } from '../icons';
@@ -62,7 +62,7 @@ export default function StoryPage({id}){
       <div className="btns" style={{paddingTop:14}}><button className="btn red" onClick={() => {
         if (opens.length > 1) openSheet(<OpeningSheet st={st} onPick={start}/>); else start();
       }}>새 대화 시작</button>
-        <button className="btn" onClick={() => openLite(st)}>claude.ai에서 하기</button></div>
+        <a className="btn" style={{textDecoration:'none', textAlign:'center'}} href={LITE_URL} target="_blank" rel="noopener noreferrer" onClick={() => openLite(st)}>claude.ai에서 하기</a></div>
       <div className="sec-h"><b>시작 시나리오 {opens.length}개</b>{opens.length > 1 && <button onClick={() => start(opens[Math.floor(Math.random() * opens.length)])}>무작위로 시작</button>}</div>
       <div className="scen">
         {opens.map((g, i) => <button key={i} onClick={() => start(g)}><b>{g.title || `시작 ${i + 1}`}</b><span>{preview(g.setup || g.text) || '빈 장면으로 시작'}</span><em>이걸로 시작 ›</em></button>)}

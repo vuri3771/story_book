@@ -31,7 +31,9 @@
   .tabbar button:hover{background:var(--surface)}
   .tabbar button.on{background:var(--surface)}
   .tabbar button svg{width:22px;height:22px}
-  .tabbar .lite{display:flex;margin-top:auto;color:var(--muted)}
+  .tabbar .lite{display:flex;align-items:center;gap:12px;margin-top:auto;padding:11px 14px;border-radius:12px;font-size:15px;color:var(--muted);text-decoration:none}
+  .tabbar .lite:hover{background:var(--surface);color:var(--text)}
+  .tabbar .lite svg{width:22px;height:22px}
   .hero img{aspect-ratio:21/9}
   .grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
 }

@@ -1,8 +1,8 @@
 // ================= 시트 =================
 import { useState } from 'react';
 import { S, commit, openSheet, closeSheet, closeDrawer, toast, ui, useStore, go } from './lib/store';
-import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, uid } from './lib/constants';
-import { modelOf, won, storyOf, exportAll, importFile, openLite } from './lib/helpers';
+import { MODELS, STYLES, LENGTHS, EFFORTS, NAI_BASE, uid, LITE_URL } from './lib/constants';
+import { modelOf, won, storyOf, exportAll, importFile } from './lib/helpers';
 import { costOf, usingProxy } from './lib/api';
 import { maybeSummarize } from './lib/engine';
 import { remoteOn, token, switchAccount, syncStatus, pushNow } from './lib/remote';
@@ -125,7 +125,7 @@ export function SettingsForm({inSheet, sec}){
           <label>백업</label>
           <div className="seg"><button onClick={exportAll}>내보내기</button><button onClick={importFile}>불러오기</button></div>
           <label>claude.ai 라이트판<small>구독으로 돌아가요. 성인 수위는 안 되고, 스토리는 각 스토리 화면의 "claude.ai에서 하기"로 옮겨요</small></label>
-          <button className="btn" onClick={() => openLite()}>claude.ai에서 하기</button>
+          <a className="btn" style={{textDecoration:'none', textAlign:'center', display:'block'}} href={LITE_URL} target="_blank" rel="noopener noreferrer">claude.ai에서 하기</a>
           {remoteOn && <AccountCode/>}
         </>}
       </div>
