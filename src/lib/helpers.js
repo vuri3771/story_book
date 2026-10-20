@@ -1,5 +1,5 @@
 import { S, setState, commit, closeSheet, goHome, toast } from './store';
-import { MODELS, defaultState, newStory, uid } from './constants';
+import { MODELS, defaultState, newStory, uid, LITE_URL } from './constants';
 import { ask } from '../sheets';
 
 export const escT = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -52,6 +52,20 @@ export function readImage(file, max){
     }; img.onerror = rej; img.src = fr.result; };
     fr.onerror = rej; fr.readAsDataURL(file);
   });
+}
+
+// claude.ai 라이트판으로 옮기기 : 라이트판을 새 탭으로 열고, 스토리가 있으면 글만 담은 스토리 파일을 받는다
+// 라이트판은 바깥 서버에 연결할 수 없어서 파일로 건넨다. 창은 클릭 안에서 먼저 열어야 막히지 않는다
+export function openLite(st){
+  window.open(LITE_URL, '_blank', 'noopener');
+  if (!st) return;
+  const story = {title:st.title, intro:st.intro, world:st.world, commonRules:st.commonRules, greeting:st.greeting, greetingSetup:st.greetingSetup, memory:st.memory,
+    characters:(st.characters || []).map(x => ({name:x.name, profile:x.profile}))};
+  const p = S.personas.find(x => x.id === st.personaId);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({kind:'story', story, ...(p ? {persona:{name:p.name, desc:p.desc}} : {})})], {type:'application/json'}));
+  a.download = (st.title || 'story').replace(/[\\/:*?"<>|]/g, '_') + '.json'; a.click();
+  toast('스토리 파일을 받았어요. 라이트판에서 "스토리 파일 가져오기"로 넣어 주세요.');
 }
 
 // 백업 내보내기, 키는 비운다

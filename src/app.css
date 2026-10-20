@@ -6,6 +6,7 @@
 .tabbar button svg{width:24px;height:24px}
 .tabbar button.on{color:var(--text);font-weight:700}
 .tabbar .brand{display:none}
+.tabbar .lite{display:none}
 .tabbar.deep{display:none}
 .page{width:100%;max-width:1080px;margin:0 auto}
 .edit{max-width:760px;margin:0 auto;width:100%}
@@ -30,6 +31,7 @@
   .tabbar button:hover{background:var(--surface)}
   .tabbar button.on{background:var(--surface)}
   .tabbar button svg{width:22px;height:22px}
+  .tabbar .lite{display:flex;margin-top:auto;color:var(--muted)}
   .hero img{aspect-ratio:21/9}
   .grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
 }

@@ -9,6 +9,8 @@ export const MODELS = [
   {id:'novelai', name:'NovelAI', desc:'성인 장면을 허용하는 모델. NovelAI 구독(정액)으로 써요', in:0, out:0, cr:0, color:'#9b6bff', icon:'spark', provider:'nai'}
 ];
 export const NAI_BASE = 'https://text.novelai.net/oa/v1';
+// claude.ai 구독으로 돌아가는 라이트판(아티팩트). 19금이 아닌 스토리를 console 요금 없이 돌린다
+export const LITE_URL = 'https://claude.ai/artifact/3tvA4aMDezAHbi4zdTTanM';
 export const STYLES = {
   novel:{name:'웹소설 (기본)', text:'3인칭 웹소설 문체. 감각적이고 문학적인 묘사로 장면의 공기와 인물의 미세한 표정, 몸짓, 속마음을 살린다. 문장이 매끄럽게 이어지고 대화와 서술이 자연스럽게 어우러진다.'},
   lit:{name:'문학적인 서사', text:'문학적이고 밀도 높은 문장. 비유와 여운을 살리고 장면을 영화처럼 그린다.'},

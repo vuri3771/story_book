@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { useStore, ui, tab } from './lib/store';
 import { Icon } from './icons';
+import { openLite } from './lib/helpers';
 import Home from './screens/Home';
 import Stories from './screens/Stories';
 import Chats from './screens/Chats';
@@ -29,6 +30,8 @@ export default function App(){
       <nav className={'tabbar' + (deep ? ' deep' : '')} aria-label="메인 메뉴">
         <div className="brand">스토리챗</div>
         {TABS.map(([k, label, icon]) => <button key={k} className={root === k ? 'on' : ''} aria-current={root === k && !deep ? 'page' : undefined} onClick={() => tab(k)}><Icon n={icon}/><span>{label}</span></button>)}
+        {/* 로그아웃 버튼 자리 : claude.ai 구독으로 도는 라이트판으로 넘어간다(넓은 화면 메뉴에서만, 휴대폰은 설정의 계정·백업 탭) */}
+        <button className="lite" onClick={() => openLite()}><Icon n="out"/><span>claude.ai에서 하기</span></button>
       </nav>
     </div>
     {ui.drawer && <Fragment key={'d' + ui.drawerSeq}>{ui.drawer}</Fragment>}
