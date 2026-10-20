@@ -22,7 +22,7 @@ export const handler = async event => {
   }
   try {
     switch (method + ' ' + path){
-      case 'GET /state': return res(200, await getState(uid));
+      case 'GET /state': return res(200, await getState(uid, event.queryStringParameters?.cursor));
       case 'POST /sync': return await sync(uid, body);
       case 'POST /images': return await images(uid, body);
       case 'GET /wallet': return res(200, await getWallet(uid));
@@ -40,17 +40,30 @@ export const handler = async event => {
 // 이미지와 지갑을 뺀 전부, 이미지는 /images 로 따로 받는다
 // 정렬 키 k 는 필터 조건에 못 쓰므로 키 범위로 나눠 읽는다
 //   chat#… < img#… < meta < story#… < wallet  →  [k < img#] 와 [meta ≤ k ≤ story$]
-async function getState(uid){
+// Lambda 응답은 6MB 가 한도라, 대화가 길어지면 한 번에 다 돌려주다 500 이 났다
+// 4MB 쯤 차면 거기서 끊고 next(다음에 이어 읽을 자리)를 함께 돌려준다. 앱은 next 가 없을 때까지 이어 받는다
+const PAGE_BYTES = 4 * 1024 * 1024;
+async function getState(uid, cursor){
   const items = [];
   const ranges = [
     {KeyConditionExpression:'uid = :u AND k < :a', ExpressionAttributeValues:{':u':uid, ':a':'img#'}},
     {KeyConditionExpression:'uid = :u AND k BETWEEN :a AND :b', ExpressionAttributeValues:{':u':uid, ':a':'meta', ':b':'story$'}}
   ];
-  for (const q of ranges){
-    let start;
+  let from = {r:0, k:null};
+  try { if (cursor) from = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')); } catch(e){}
+  let size = 0, lastR = 0;
+  for (let ri = from.r || 0; ri < ranges.length; ri++){
+    let start = ri === from.r && from.k ? {uid, k:from.k} : undefined;
     do {
-      const r = await ddb.send(new QueryCommand({TableName:TABLE, ...q, ExclusiveStartKey:start}));
-      for (const it of r.Items || []) items.push({k:it.k, d:it.d});
+      const r = await ddb.send(new QueryCommand({TableName:TABLE, ...ranges[ri], ExclusiveStartKey:start}));
+      for (const it of r.Items || []){
+        const n = Buffer.byteLength(it.d || '') + it.k.length + 32;
+        // 이어 읽을 자리는 마지막으로 담은 항목의 범위와 키(다음 범위의 첫 항목에서 끊겨도 앞 범위 끝부터 다시 읽는다)
+        if (items.length && size + n > PAGE_BYTES){
+          return {items, next:Buffer.from(JSON.stringify({r:lastR, k:items[items.length - 1].k})).toString('base64url')};
+        }
+        items.push({k:it.k, d:it.d}); size += n; lastR = ri;
+      }
       start = r.LastEvaluatedKey;
     } while (start);
   }

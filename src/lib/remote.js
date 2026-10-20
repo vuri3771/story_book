@@ -27,6 +27,17 @@ async function call(path, body){
   return j;
 }
 
+// ----- 전체 받기 : 서버가 4MB 씩 나눠 주면(next) 끝까지 이어 받는다. 예전 서버는 next 없이 한 번에 준다 -----
+async function getState(){
+  const items = []; let cur = '';
+  for (let i = 0; i < 200; i++){
+    const j = await call('/state' + (cur ? '?cursor=' + encodeURIComponent(cur) : ''));
+    items.push(...(j.items || []));
+    if (!j.next) break; cur = j.next;
+  }
+  return {items};
+}
+
 // ----- 끊긴 답변 되찾기 : 서버가 이 대화의 마지막 답변을 끝까지 받아 남겨 둔 것 -----
 export async function fetchLast(chatId){
   if (!remoteOn) return null;
@@ -143,7 +154,7 @@ export async function pushNow(){
 
 // ----- 받기 : 새 기기이거나 연결 코드를 바꿨을 때 -----
 export async function pullState(){
-  const {items} = await call('/state');
+  const {items} = await getState();
   if (!items.length) return false;
   const map = new Map(items.map(x => [x.k, x.d]));
   const meta = JSON.parse(map.get('meta') || '{}');
@@ -215,7 +226,7 @@ export async function mergeRemote(){
   syncing = true;
   let applied = 0;
   try {
-    const remoteMap = new Map((await call('/state')).items.map(x => [x.k, x.d]));
+    const remoteMap = new Map((await getState()).items.map(x => [x.k, x.d]));
     const remote = grouped(remoteMap), local = grouped(toItems(S));
     const all = new Set([...remote.keys(), ...local.keys(), ...Object.keys(synced).map(groupOf).filter(Boolean)]);
     const apply = [];
