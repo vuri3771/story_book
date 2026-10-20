@@ -48,6 +48,7 @@ export default function ChatPage({id}){
   const spRef = useRef(null), pinRef = useRef(-1), busyRef = useRef(false);
   const [far, setFar] = useState(false);
   const [menu, setMenu] = useState(null);
+  const [big, setBig] = useState(null);
   const press = useRef({t:0, x:0, y:0, fired:0});
   // 다 쓴 메시지의 그려진 결과를 기억해 둔다. 대화가 길면 글자가 들어올 때마다(0.25초마다) 모든 메시지를 다시 해석해서 느려졌다
   const bodyCache = useRef(new WeakMap());
@@ -92,7 +93,14 @@ export default function ChatPage({id}){
     const sc = scRef.current; if (!sc) return;
     const h = e => { if (!e.target.closest?.('textarea, input')) e.preventDefault(); };
     sc.addEventListener('selectstart', h);
-    return () => sc.removeEventListener('selectstart', h);
+    // 그래도 기기가 블록을 잡으면(아이폰 꾹 누르기) 대화 글 안의 선택은 바로 지운다
+    const sel = () => {
+      const s = window.getSelection?.(); if (!s || s.isCollapsed) return;
+      const n = s.anchorNode, el = n?.nodeType === 1 ? n : n?.parentElement;
+      if (el && sc.contains(el) && !el.closest('textarea, input')) s.removeAllRanges();
+    };
+    document.addEventListener('selectionchange', sel);
+    return () => { sc.removeEventListener('selectstart', h); document.removeEventListener('selectionchange', sel); };
   }, [!!c]);
   // 사이드 메뉴에서 단축어 관리를 누르면 단축어 창을 연다
   useEffect(() => { if (ui.pendingPop){ setScQuery(''); setPop(ui.pendingPop); ui.pendingPop = null; } });
@@ -219,7 +227,10 @@ export default function ChatPage({id}){
     const move = e => { const p = press.current; if (Math.abs(e.clientX - p.x) > 8 || Math.abs(e.clientY - p.y) > 8) clearTimeout(p.t); };
     const up = () => clearTimeout(press.current.t);
     const ctx = e => { e.preventDefault(); if (Date.now() - press.current.fired > 800) openMenu(e.clientX, e.clientY); };
-    const toggle = e => { if (Date.now() - press.current.fired < 800) return; if (e.target.closest('button')) return; const n = new Set(openActs); n.has(i) ? n.delete(i) : n.add(i); setOpenActs(n); };
+    const toggle = e => {
+      if (Date.now() - press.current.fired < 800) return; if (e.target.closest('button')) return;
+      // 장면 사진을 누르면 화면 전체로 크게 본다
+      const img = e.target.closest('.scene img'); if (img){ setBig({src:img.src, alt:img.alt}); return; } const n = new Set(openActs); n.has(i) ? n.delete(i) : n.add(i); setOpenActs(n); };
     // 19금으로 넘어가는 첫 답변에는 경계 표시, 이어지는 19금 답변에는 작은 뱃지
     const mark = null;
     return <div key={i} data-i={i} className={'m ' + m.role + (m.cont ? ' cont' : '')} onClick={toggle} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={ctx}>{mark}{body}{acts}</div>;
@@ -249,6 +260,7 @@ export default function ChatPage({id}){
       onTouchEnd={() => { if (pull === 2) goOn(); pullRef.current.y = -1; setPull(0); }}>
       <div id="log" className={st.narrColor === 'black' ? 'narr-black' : ''}>{log}{pull > 0 && <div className="pull-hint">{pull === 2 ? '놓으면 이야기가 이어져요' : '더 올리면 이야기가 이어져요'}</div>}<div ref={spRef} aria-hidden="true"/></div></div>
     {menu && <MsgMenu at={menu} items={menu.items} onClose={() => setMenu(null)}/>}
+    {big && <div className="lightbox" role="dialog" aria-label="사진 크게 보기" onClick={() => setBig(null)}><img src={big.src} alt=""/>{big.alt && <div className="cap">{big.alt}</div>}</div>}
     <div className="dock">
       {far && <button className="jump" aria-label="맨 아래로" onClick={() => { const sc = scRef.current; sc.scrollTo({top:sc.scrollHeight - (spRef.current?.offsetHeight || 0) - sc.clientHeight + 40, behavior:'smooth'}); }}><Icon n="chev"/></button>}
       {pop === 'sug' && <div className="pop">

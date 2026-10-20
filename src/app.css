@@ -247,8 +247,8 @@
   .info .ih{padding:8px 14px}
   .info .ib{padding:10px 14px 12px;line-height:1.6}
   .cblock{padding:12px 14px;line-height:1.65;margin:2px 0 10px}
-  .scene{margin:4px -14px 12px}
-  .acts{gap:12px}
+  .scene{margin:6px 0 14px}
+  .acts{gap:6px 20px}
   .dock{padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px))}
   .pop{margin-bottom:8px}
   .sug{padding:4px 8px}

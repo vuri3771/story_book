@@ -81,7 +81,7 @@ body{overflow:hidden}
 .m{margin-bottom:calc(22px * var(--pg,1));line-height:calc(1.75 * var(--lh,1));letter-spacing:var(--ls,0);font-size:calc(15.5px * var(--fz,1));word-break:keep-all;overflow-wrap:anywhere}
 /* 대화 글을 꾹 누르면 글자 선택(블록)과 앱 메뉴가 겹쳐 먹통이 된다. 터치 판정이 안 걸리는 기기도 있어서 항상 끈다
    복사는 꾹 눌러 뜨는 메뉴로 하고, 메시지 수정 입력칸은 그대로 선택된다 */
-#log .m, .mmenu-bg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#log, #log *, .mmenu-bg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #log .m textarea, #log .m input{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .m p{margin:0 0 calc(12px * var(--pg,1))}
 /* 입력창 글자도 대화 글과 같은 글꼴, 크기, 자간을 따른다. 16px 아래여도 viewport maximum-scale=1 이라 아이폰에서 확대되지 않는다 */
@@ -98,10 +98,15 @@ body .dock textarea{font-family:var(--font);font-size:calc(15.5px * var(--fz,1))
 .info .ib{padding:14px 18px 16px;white-space:pre-wrap;line-height:1.7}
 .info .a{color:var(--info-a)} .info .b{color:var(--info-b)}
 .cblock{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;white-space:pre-wrap;line-height:1.75;margin:4px 0 14px;font-size:calc(15px * var(--fz,1))}
-.scene{margin:6px -18px 16px;text-align:center}
-.scene img{max-width:100%;max-height:70vh;display:block;margin:0 auto}
-.acts{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--muted);margin-top:-4px}
-.acts button{color:var(--muted);padding:4px 0}
+/* 장면 사진 : 대화 폭에 꽉 차게, 누르면 화면 전체로 크게 본다 */
+.scene{margin:8px 0 18px;text-align:center}
+.scene img{width:100%;max-height:88vh;object-fit:contain;display:block;margin:0 auto;border-radius:12px;cursor:zoom-in;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.lightbox{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain}
+.lightbox .cap{position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;color:#ddd;font-size:13px;padding:0 20px}
+/* 답변 아래 버튼 : 누르는 영역을 키우고 간격을 벌린다 */
+.acts{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-size:14px;color:var(--muted);margin-top:2px}
+.acts button{color:var(--muted);padding:8px 2px;min-height:36px}
 .acts button:hover{color:var(--text)}
 .typing{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.2}}
