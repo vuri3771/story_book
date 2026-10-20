@@ -55,6 +55,10 @@ export default function ChatPage({id}){
   // 맨 아래에서 더 끌어올리면(휠은 더 굴리면) 내 말 없이 이야기를 이어 간다
   const [pull, setPull] = useState(0);
   const pullRef = useRef({y:-1, wheel:0, wt:0});
+  // 긴 대화는 최근 메시지만 그린다. 맨 위까지 올리면 10개씩 더 그리고, 보던 자리는 그대로 둔다
+  const PAGE = 10;
+  const [shown, setShown] = useState(PAGE);
+  const moreRef = useRef(0);
 
   // 입력창 높이 자동 조절
   useLayoutEffect(() => { const t = inpRef.current; if (!t) return; t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; }, [text]);
@@ -63,6 +67,8 @@ export default function ChatPage({id}){
   // 아래 빈칸(spacer)은 답변이 짧아도 내 메시지를 위로 올릴 수 있게 남은 높이만큼만 채운다
   useLayoutEffect(() => {
     const sc = scRef.current; if (!sc || !c) return;
+    // 위에 메시지를 더 붙였으면 늘어난 높이만큼 내려서 보던 자리를 지킨다
+    if (moreRef.current){ sc.scrollTop += sc.scrollHeight - moreRef.current; moreRef.current = 0; return; }
     const nowBusy = run.busy && run.chatId === c.id;
     let align = false;
     if (nowBusy && !busyRef.current){ pinRef.current = c.messages.map(m => m.role).lastIndexOf('user'); align = true; }
@@ -154,7 +160,11 @@ export default function ChatPage({id}){
 
   let turn = 0, prevScene = null;
   const lastAI = c.messages.map(m => m.role).lastIndexOf('assistant');
-  const log = c.messages.map((m, i) => {
+  // 그리지 않는 앞쪽 메시지도 턴 번호는 세어 둔다
+  const from = Math.max(0, c.messages.length - shown);
+  for (let k = 0; k < from; k++) if (c.messages[k].role === 'assistant') turn++;
+  const log = c.messages.slice(from).map((m, j) => {
+    const i = from + j;
     if (m.role === 'assistant') turn++;
     // 자유 시작 지시는 화면에 그리지 않는다
     if (m.start) return null;
@@ -248,7 +258,10 @@ export default function ChatPage({id}){
       <button className="icon-btn" aria-label="메뉴" onClick={() => openDrawer(<ChatMenu id={c.id}/>)}><Icon n="menu"/></button>
       {busy && <div className="gauge" role="progressbar" aria-label="답변 생성 중" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i style={{width: pct + '%'}}/></div>}
     </div>
-    <div className="scroll" ref={scRef} onScroll={e => { const sc = e.currentTarget; setFar(sc.scrollHeight - sc.scrollTop - sc.clientHeight - (spRef.current?.offsetHeight || 0) > 300); }}
+    <div className="scroll" ref={scRef} onScroll={e => {
+        const sc = e.currentTarget; setFar(sc.scrollHeight - sc.scrollTop - sc.clientHeight - (spRef.current?.offsetHeight || 0) > 300);
+        if (sc.scrollTop < 120 && from > 0 && !moreRef.current){ moreRef.current = sc.scrollHeight; setShown(s => s + PAGE); }
+      }}
       onWheel={e => {
         const p = pullRef.current; clearTimeout(p.wt);
         if (e.deltaY <= 0 || busy || !atBottom()){ p.wheel = 0; setPull(0); return; }
@@ -258,7 +271,7 @@ export default function ChatPage({id}){
       onTouchStart={e => { pullRef.current.y = !busy && atBottom() ? e.touches[0].clientY : -1; }}
       onTouchMove={e => { const p = pullRef.current; if (p.y < 0) return; const d = p.y - e.touches[0].clientY; setPull(d > 90 ? 2 : d > 20 ? 1 : 0); }}
       onTouchEnd={() => { if (pull === 2) goOn(); pullRef.current.y = -1; setPull(0); }}>
-      <div id="log" className={st.narrColor === 'black' ? 'narr-black' : ''}>{log}{pull > 0 && <div className="pull-hint">{pull === 2 ? '놓으면 이야기가 이어져요' : '더 올리면 이야기가 이어져요'}</div>}<div ref={spRef} aria-hidden="true"/></div></div>
+      <div id="log" className={st.narrColor === 'black' ? 'narr-black' : ''}>{from > 0 && <div className="more-hint">위로 올리면 이전 대화를 더 불러와요 · {from}개 남음</div>}{log}{pull > 0 && <div className="pull-hint">{pull === 2 ? '놓으면 이야기가 이어져요' : '더 올리면 이야기가 이어져요'}</div>}<div ref={spRef} aria-hidden="true"/></div></div>
     {menu && <MsgMenu at={menu} items={menu.items} onClose={() => setMenu(null)}/>}
     {big && <div className="lightbox" role="dialog" aria-label="사진 크게 보기" onClick={() => setBig(null)}><img src={big.src} alt=""/>{big.alt && <div className="cap">{big.alt}</div>}</div>}
     <div className="dock">
