@@ -71,15 +71,18 @@ export function buildSystem(c){
   if (tags.length) t += '\n\n[이미지]\n장면에 딱 맞을 때만 가끔 한 줄에 [[이미지:이름]] 을 넣으면 그 이미지가 보인다. 이름에 19 나 🔞 가 붙은 이미지는 성적인 장면에서만 쓰고, 평소 장면에는 붙지 않은 이미지를 쓴다. 쓸 수 있는 이름: ' + tags.join(', ');
   if (st.memory) t += '\n\n[장기 기억 · 항상 지킬 사실]\n' + st.memory;
   t += PACE;
-  const blocks = [{type:'text', text: fill(t, c)}];
+  // 캐시 : 답을 읽고 쓰다 보면 5분이 쉽게 지나 캐시가 끊기고, 그때마다 스토리 설정과 대화 전체를 정가로 다시 냈다
+  // 1시간 캐시는 처음 만들 때 2배지만 그 뒤 한 시간 동안 읽기가 정가의 5%(Opus 5.5)라 훨씬 싸다
+  // 스토리 설정 끝에도 지점을 둬서, 요약 메모리가 바뀌어도 스토리 설정 캐시는 살아남는다
+  const blocks = [{type:'text', text: fill(t, c), cache_control:CACHE}];
   let dyn = '';
   if (S.settings.commonNote?.trim()) dyn += '[공통 유저노트 · 모든 대화에 적용]\n' + S.settings.commonNote.trim() + '\n\n';
   if (c.notes) dyn += '[유저노트 · 이 대화에서 항상 기억할 것]\n' + c.notes + '\n\n';
   if (c.memory) dyn += '[요약 메모리 · 지금까지의 줄거리]\n' + c.memory;
-  if (dyn) blocks.push({type:'text', text: fill(dyn.trim(), c)});
-  blocks[blocks.length-1].cache_control = {type:'ephemeral'};
+  if (dyn) blocks.push({type:'text', text: fill(dyn.trim(), c), cache_control:CACHE});
   return blocks;
 }
+export const CACHE = {type:'ephemeral', ttl:'1h'};
 
 // en : NovelAI 번역 모드. 영어로 옮겨 둔 원문(m.en)이 있으면 그걸 보낸다
 export function buildMessages(c, list, en = false){
@@ -92,7 +95,7 @@ export function buildMessages(c, list, en = false){
   }
   if (!msgs.length || msgs[0].role !== 'user') msgs.unshift({role:'user', content:'(대화 시작)'});
   const lastM = msgs[msgs.length-1];
-  lastM.content = [{type:'text', text:lastM.content, cache_control:{type:'ephemeral'}}];
+  lastM.content = [{type:'text', text:lastM.content, cache_control:CACHE}];
   return msgs;
 }
 

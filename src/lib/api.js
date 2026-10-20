@@ -166,7 +166,8 @@ function apiError(status, t){
   if (/credit|balance/i.test(msg)) return 'Anthropic 잔액이 부족해요. console.anthropic.com에서 충전해주세요.';
   return `오류 ${status}: ${String(msg).slice(0, 200)}`;
 }
-export function costOf(u, modelId){ const m = modelOf(modelId); return (u.in * m.in + u.cw * m.in * 1.25 + u.cr * m.cr + u.out * m.out) / 1e6 * S.settings.krw; }
+// 캐시 만들기는 1시간 캐시라 정가의 2배
+export function costOf(u, modelId){ const m = modelOf(modelId); return (u.in * m.in + u.cw * m.in * 2 + u.cr * m.cr + u.out * m.out) / 1e6 * S.settings.krw; }
 export function track(u, modelId, chat, msg){
   const k = costOf(u, modelId);
   S.usage.krw = (S.usage.krw || 0) + k;

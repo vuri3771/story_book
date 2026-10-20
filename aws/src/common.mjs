@@ -28,7 +28,8 @@ export const PRICES = {
 export const KRW = () => +process.env.KRW || 1400;
 export function costUsd(model, u){
   const m = PRICES[model]; if (!m) return 0;
-  return (u.in * m.in + u.cw * m.in * 1.25 + u.cr * m.cr + u.out * m.out) / 1e6;
+  // 앱이 1시간 캐시를 쓰므로 캐시 만들기는 정가의 2배
+  return (u.in * m.in + u.cw * m.in * 2 + u.cr * m.cr + u.out * m.out) / 1e6;
 }
 export const costKrw = (model, u) => costUsd(model, u) * KRW();
 

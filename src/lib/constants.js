@@ -31,7 +31,7 @@ export const DEFAULT_SHORTCUTS = [
 ];
 export const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
 export function defaultState(){
-  return {v:2, settings:{apiKey:'', model:'claude-opus-5-5', helperModel:'claude-haiku-5-5', effort:'low', length:'normal', keepRecent:30, summarizeEvery:20, krw:1400, noFallback:false, paidUsd:5, naiKey:'', naiModel:'glm-4-6', naiBase:NAI_BASE},
+  return {v:2, settings:{apiKey:'', model:'claude-opus-5-5', helperModel:'claude-haiku-5-5', effort:'low', length:'normal', keepRecent:16, summarizeEvery:10, krw:1400, noFallback:false, paidUsd:5, naiKey:'', naiModel:'glm-4-6', naiBase:NAI_BASE},
     personas:[{id:uid(), name:'나', desc:''}], stories:[], chats:[], shortcuts: DEFAULT_SHORTCUTS.map(x => ({...x})), usage:{krw:0}, spend:null};
 }
 
