@@ -96,6 +96,7 @@ aws lambda add-permission --function-name $API_FN --statement-id apigw-invoke --
 API_URL="https://$API_ID.execute-api.$REGION.amazonaws.com"
 
 echo
-echo "완료. Netlify 환경변수에 넣을 값 :"
+echo "완료. 서버 배포가 끝났어요. 앱(Vercel)에서는 따로 할 일이 없어요."
+echo "참고 : 아래 두 주소는 이미 앱의 vite.config.js 에 들어 있어요. 주소가 바뀌었을 때만 그 파일을 고치면 돼요."
 echo "VITE_API_URL=$API_URL"
 echo "VITE_CLAUDE_PROXY_URL=${CLAUDE_URL%/}"
